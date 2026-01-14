@@ -4,7 +4,6 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { 
   Settings, 
-  Save, 
   Plus, 
   Folder, 
   FileText, 
@@ -12,17 +11,17 @@ import {
   Trash2, 
   ChevronRight, 
   ChevronDown,
-  FolderPlus,
   Upload,
   MessageSquare,
   Menu,
-  X
+  X,
+  Save
 } from 'lucide-react';
 import { BusinessRuleDirectory, BusinessRuleCategory, BusinessRule } from '../types/businessRules';
 import { gitMigrationScenario } from '../lib/gitScenario';
 import { gitSteps } from '../lib/gitSteps';
 import { useStore } from '../store/useStore';
-import { CategoryInfo, ModernizationCategory } from '../types';
+import { CategoryInfo } from '../types';
 import { getCategoryIcon } from '../data/categories';
 import { cn } from '../lib/utils';
 
@@ -596,7 +595,7 @@ export function AdminPanel() {
     // 新しいカテゴリーIDを生成
     const newId = `custom-${Date.now()}`;
     const newCategory: CategoryInfo = {
-      id: newId as ModernizationCategory,
+      id: newId,
       name: name,
       description: description || 'カスタムガイド',
       icon: icon,
@@ -641,7 +640,7 @@ export function AdminPanel() {
       return {
         message: 'Docker/コンテナ関連のガイドを作成しますか？\n\nカテゴリー名: Docker導入ガイド\n説明: コンテナ化とDocker導入',
         category: {
-          id: newId as ModernizationCategory,
+          id: newId,
           name: 'Docker導入ガイド',
           description: 'コンテナ化とDocker導入',
           icon: 'Workflow',
@@ -654,7 +653,7 @@ export function AdminPanel() {
       return {
         message: 'Kubernetes関連のガイドを作成しますか？\n\nカテゴリー名: Kubernetes導入ガイド\n説明: K8sクラスター構築と運用',
         category: {
-          id: newId as ModernizationCategory,
+          id: newId,
           name: 'Kubernetes導入ガイド',
           description: 'K8sクラスター構築と運用',
           icon: 'Workflow',
@@ -718,9 +717,264 @@ export function AdminPanel() {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-4">
-          {/* ディレクトリ構造 */}
-          <Card className="p-6 glass-strong rounded-2xl shadow-modern-lg border border-white/20">
-            <div className="flex items-center gap-3 mb-4">
+          
+          {/* メニュー管理モード */}
+          {viewMode === 'menu-management' && (
+            <Card className="p-6 glass-strong rounded-2xl shadow-modern-lg border border-white/20">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-modern">
+                  <Menu className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">メニュー管理</h3>
+                  <p className="text-xs text-gray-600 font-medium">サイドバーに表示されるメニューを管理</p>
+                </div>
+              </div>
+
+              {/* 新規作成ボタン */}
+              {menuCreationMode === 'none' && (
+                <div className="mb-6 flex gap-3">
+                  <Button
+                    onClick={() => setMenuCreationMode('markdown')}
+                    className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-sm hover:shadow-md transition-all"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    マークダウンファイルから作成
+                  </Button>
+                  <Button
+                    onClick={() => setMenuCreationMode('natural-language')}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold shadow-sm hover:shadow-md transition-all"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    自然言語で対話しながら作成
+                  </Button>
+                </div>
+              )}
+
+              {/* マークダウンインポート */}
+              {menuCreationMode === 'markdown' && (
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-200/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-900">マークダウンファイルからインポート</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMenuCreationMode('none');
+                        setMarkdownFile(null);
+                      }}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    ガイドの内容が記載されたMarkdownファイルをアップロードしてください。
+                  </p>
+                  <input
+                    type="file"
+                    accept=".md,.markdown"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setMarkdownFile(file);
+                        handleMarkdownImport(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="markdown-upload"
+                  />
+                  <label
+                    htmlFor="markdown-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transition-all"
+                  >
+                    <Upload className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">ファイルを選択</span>
+                  </label>
+                  {markdownFile && (
+                    <p className="text-xs text-gray-500 mt-2">選択中: {markdownFile.name}</p>
+                  )}
+                </div>
+              )}
+
+              {/* 自然言語での対話型作成 */}
+              {menuCreationMode === 'natural-language' && (
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-blue-50/80 to-cyan-50/80 border border-blue-200/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-900">自然言語で対話しながら作成</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMenuCreationMode('none');
+                        setNaturalLanguageInput('');
+                        setNaturalLanguageChat([]);
+                      }}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* チャット履歴 */}
+                  {naturalLanguageChat.length > 0 && (
+                    <div className="mb-3 space-y-2 max-h-64 overflow-y-auto">
+                      {naturalLanguageChat.map((msg, index) => (
+                        <div
+                          key={index}
+                          className={cn(
+                            'p-3 rounded-lg text-sm',
+                            msg.role === 'user'
+                              ? 'bg-blue-100 text-blue-900 ml-4'
+                              : 'bg-white text-gray-900 mr-4'
+                          )}
+                        >
+                          <div className="font-semibold mb-1 text-xs">
+                            {msg.role === 'user' ? 'あなた' : 'AI'}
+                          </div>
+                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* 入力エリア */}
+                  <div className="flex gap-2">
+                    <Input
+                      value={naturalLanguageInput}
+                      onChange={(e) => setNaturalLanguageInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleNaturalLanguageSubmit()}
+                      placeholder="例: Dockerコンテナの導入ガイドを作りたい"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleNaturalLanguageSubmit}
+                      className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* 既存メニュー一覧 */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold text-gray-900 mb-3">メニュー一覧</h4>
+                {categories.map((category) => {
+                  const Icon = getCategoryIcon(category.icon);
+                  const isEditing = editingCategory?.id === category.id;
+                  
+                  return (
+                    <div
+                      key={category.id}
+                      className="p-4 rounded-xl border border-gray-200/50 bg-white/80 hover:bg-white/90 transition-all"
+                    >
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <Input
+                            value={editingCategory.name}
+                            onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                            placeholder="カテゴリー名"
+                            className="mb-2"
+                          />
+                          <Input
+                            value={editingCategory.description}
+                            onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                            placeholder="説明"
+                            className="mb-2"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                if (editingCategory) {
+                                  updateCategory(category.id, {
+                                    name: editingCategory.name,
+                                    description: editingCategory.description,
+                                    icon: editingCategory.icon,
+                                  });
+                                  setEditingCategory(null);
+                                }
+                              }}
+                              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                            >
+                              保存
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingCategory(null)}
+                            >
+                              キャンセル
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                              <Icon className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-gray-900">{category.name}</h5>
+                              <p className="text-xs text-gray-600">{category.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingCategory(category)}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('このメニューを削除しますか？')) {
+                                  deleteCategory(category.id);
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* 業務ルール管理モード */}
+          {viewMode === 'business-rules' && (
+            <>
+              {/* ツールバー */}
+              <div className="flex gap-2 mb-4 justify-end">
+                <Button
+                  onClick={addDirectory}
+                  variant="outline"
+                  className="gap-2 rounded-xl border-gray-200/50 hover:bg-gray-100/50"
+                >
+                  <FolderPlus className="w-4 h-4" />
+                  ディレクトリ追加
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-modern hover:shadow-modern-lg transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  保存・エクスポート
+                </Button>
+              </div>
+
+              {/* ディレクトリ構造 */}
+              <Card className="p-6 glass-strong rounded-2xl shadow-modern-lg border border-white/20">
+                <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-modern">
                 <Folder className="w-5 h-5 text-white" />
               </div>
@@ -1067,6 +1321,8 @@ SubversionリポジトリのURLと構造を確認する
               構造化データはMarkdown内に埋め込まれ、人間にも読みやすい形式です。
             </p>
           </Card>
+          </>
+          )}
         </div>
       </div>
     </div>
