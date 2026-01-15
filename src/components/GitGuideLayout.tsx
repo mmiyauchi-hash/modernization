@@ -5,12 +5,38 @@ import { ArrowLeft, CheckCircle2, Circle, RotateCcw, HelpCircle, X, Lightbulb, A
 import { getStepStatus } from '../lib/gitSteps';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import { gitMigrationScenario } from '../lib/gitScenario';
 
 export function GitGuideLayout() {
-  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, clearSavedProgress, setSelectedCategory, showHelpGuide, helpGuideContent, hideHelp } = useStore();
+  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, setSelectedCategory, showHelpGuide, helpGuideContent, hideHelp, localRules, currentStepId } = useStore();
   const navigate = useNavigate();
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+
+  // 🔴 現在のステップに関連する社内独自ルールを取得
+  const currentStepRule = useMemo(() => {
+    if (!currentStepId || gitMigrationPhase.phase !== 'repository') return null;
+    
+    const scenario = gitMigrationScenario[gitMigrationPhase.phase];
+    if (!scenario) return null;
+    
+    const currentStep = scenario.find((s) => s.id === currentStepId);
+    if (!currentStep) return null;
+
+    const relatedRule = localRules.find((r) => {
+      if (currentStep.id === 'repository-name' && r.type === 'naming') {
+        return true;
+      }
+      return false;
+    });
+
+    if (!relatedRule) return null;
+
+    return {
+      rule: relatedRule,
+      step: currentStep,
+    };
+  }, [currentStepId, gitMigrationPhase.phase, localRules]);
   
   // マウント時にカテゴリーを設定（レンダリング前に同期的に実行）
   useLayoutEffect(() => {
@@ -278,6 +304,57 @@ export function GitGuideLayout() {
 
             {/* ガイド内容 */}
             <div className="space-y-6">
+              {/* 🔴 社内独自ルールを一番上に表示 */}
+              {currentStepRule && currentStepRule.rule.isCustomRule && (
+                <div className={cn(
+                  'rounded-xl p-5 animate-fade-in mb-6',
+                  'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-400 shadow-lg ring-2 ring-violet-200 ring-offset-2'
+                )}>
+                  <div className="flex items-start gap-4">
+                    <div className={cn(
+                      'w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0',
+                      'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md'
+                    )}>
+                      <span className="text-xl">🏢</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="mb-3 flex items-center gap-3">
+                        <span className="px-4 py-1.5 text-sm font-bold rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                          🏢 社内独自ルール
+                        </span>
+                        <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
+                      </div>
+                      <h4 className={cn(
+                        'font-bold text-lg mb-1',
+                        'text-violet-900'
+                      )}>
+                        {currentStepRule.rule.name}
+                      </h4>
+                      <p className={cn(
+                        'text-base mb-3',
+                        'text-violet-800'
+                      )}>
+                        {currentStepRule.rule.description}
+                      </p>
+                      {currentStepRule.rule.example && (
+                        <div className={cn(
+                          'p-3 rounded-lg border',
+                          'bg-violet-100 border-violet-300'
+                        )}>
+                          <p className="text-sm text-gray-600 font-medium mb-1">例:</p>
+                          <code className={cn(
+                            'text-base font-mono',
+                            'text-violet-900'
+                          )}>
+                            {currentStepRule.rule.example}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* タイトルと説明 */}
               <div className="p-5 bg-amber-50 rounded-xl border-2 border-amber-200">
                 <div className="flex items-start gap-3 mb-3">

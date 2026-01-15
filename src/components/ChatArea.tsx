@@ -175,6 +175,26 @@ export function ChatArea() {
     }
   }, [currentStepId, showHelp]);
 
+  // 🔴 社内独自ルールが検出されたら自動でヘルプパネルを表示（GitGuideLayoutで一番上に表示される）
+  useEffect(() => {
+    if (currentStepRule && currentStepRule.rule.isCustomRule) {
+      // 社内独自ルールが検出されたら、既存のヘルプガイドがあれば表示、なければデフォルトのヘルプを表示
+      // 実際の社内独自ルールの詳細はGitGuideLayoutで一番上に表示される
+      const defaultGuide = stepHelpGuides[currentStepId || ''] || {
+        title: '操作ガイド',
+        description: '現在のステップを進めるためのヘルプです。',
+        steps: ['チャットの指示に従って操作してください'],
+        tips: ['左側のメニューで進捗を確認できます'],
+      };
+      
+      // 少し遅延させて、メッセージ表示後にヘルプを表示
+      const timer = setTimeout(() => {
+        showHelp(defaultGuide);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStepRule, currentStepId, showHelp]);
+
   // 現在のステップに関連するルールを取得
   const currentStepRule = useMemo(() => {
     if (!selectedCategory || selectedCategory !== 'git-migration' || !currentStepId) {
