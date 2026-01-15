@@ -507,17 +507,21 @@ export function ChatArea() {
               )}
               <div
                 className={cn(
-                  'max-w-2xl rounded-2xl shadow-sm',
+                  'max-w-2xl rounded-2xl',
                   message.role === 'user'
-                    ? 'bg-teal-500 text-white px-6 py-4'
+                    ? 'bg-teal-500 text-white px-6 py-4 shadow-sm'
                     : message.isCustomRule
-                    ? 'bg-white border-2 border-amber-400 px-6 py-5'
-                    : 'bg-white border border-gray-200 px-6 py-5'
+                    ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 px-6 py-5 shadow-lg ring-2 ring-violet-200 ring-offset-2'
+                    : 'bg-white border border-gray-200 px-6 py-5 shadow-sm'
                 )}
               >
                 {message.isCustomRule && (
-                  <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500 text-white text-sm font-bold">
-                    ⚠️ 社内独自ルール
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-bold shadow-md animate-pulse">
+                      <span className="text-lg">🏢</span>
+                      社内独自ルール
+                    </div>
+                    <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
                   </div>
                 )}
                 <div className={cn(
@@ -532,20 +536,20 @@ export function ChatArea() {
                   <div className={cn(
                     'mt-5 p-5 rounded-xl border-2 animate-fade-in',
                     message.isCustomRule
-                      ? 'bg-amber-50 border-amber-300'
+                      ? 'bg-violet-50 border-violet-300 shadow-md'
                       : 'bg-blue-50 border-blue-300'
                   )}>
                     <div className="flex items-start gap-4">
                       <div className={cn(
                         'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-                        message.isCustomRule ? 'bg-amber-500' : 'bg-blue-500'
+                        message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md' : 'bg-blue-500'
                       )}>
                         <Lightbulb className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1">
                         <h4 className={cn(
                           'font-bold text-lg mb-3',
-                          message.isCustomRule ? 'text-amber-900' : 'text-blue-900'
+                          message.isCustomRule ? 'text-violet-900' : 'text-blue-900'
                         )}>
                           {message.errorGuide.title}
                         </h4>
@@ -558,7 +562,7 @@ export function ChatArea() {
                                 <li key={index} className="flex items-start gap-3 text-base text-gray-700">
                                   <span className={cn(
                                     'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white',
-                                    message.isCustomRule ? 'bg-amber-500' : 'bg-blue-500'
+                                    message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500' : 'bg-blue-500'
                                   )}>
                                     {index + 1}
                                   </span>
@@ -579,7 +583,7 @@ export function ChatArea() {
                                   className={cn(
                                     'px-4 py-3 rounded-lg font-mono text-sm flex items-center gap-2',
                                     message.isCustomRule
-                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                      ? 'bg-violet-100 text-violet-900 border border-violet-300'
                                       : 'bg-blue-100 text-blue-900 border border-blue-300'
                                   )}
                                 >
@@ -707,38 +711,55 @@ export function ChatArea() {
             <div className={cn(
               'rounded-xl p-5 animate-fade-in',
               currentStepRule.rule.isCustomRule
-                ? 'bg-amber-50 border-2 border-amber-400'
+                ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-400 shadow-lg ring-2 ring-violet-200 ring-offset-2'
                 : 'bg-blue-50 border-2 border-blue-200'
             )}>
               <div className="flex items-start gap-4">
                 <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-                  currentStepRule.rule.isCustomRule ? 'bg-amber-500' : 'bg-blue-500'
+                  'w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0',
+                  currentStepRule.rule.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md' : 'bg-blue-500'
                 )}>
                   {currentStepRule.rule.isCustomRule ? (
-                    <AlertCircle className="w-5 h-5 text-white" />
+                    <span className="text-xl">🏢</span>
                   ) : (
                     <Info className="w-5 h-5 text-white" />
                   )}
                 </div>
                 <div className="flex-1">
                   {currentStepRule.rule.isCustomRule && (
-                    <div className="mb-2">
-                      <span className="px-3 py-1 text-sm font-bold rounded-full bg-amber-500 text-white">
-                        社内独自ルール
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="px-4 py-1.5 text-sm font-bold rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                        🏢 社内独自ルール
                       </span>
+                      <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
                     </div>
                   )}
-                  <h4 className="font-bold text-gray-900 text-lg mb-1">
+                  <h4 className={cn(
+                    'font-bold text-lg mb-1',
+                    currentStepRule.rule.isCustomRule ? 'text-violet-900' : 'text-gray-900'
+                  )}>
                     {currentStepRule.rule.name}
                   </h4>
-                  <p className="text-base text-gray-700 mb-3">
+                  <p className={cn(
+                    'text-base mb-3',
+                    currentStepRule.rule.isCustomRule ? 'text-violet-800' : 'text-gray-700'
+                  )}>
                     {currentStepRule.rule.description}
                   </p>
                   {currentStepRule.rule.example && (
-                    <div className="p-3 rounded-lg bg-white border border-gray-200">
+                    <div className={cn(
+                      'p-3 rounded-lg border',
+                      currentStepRule.rule.isCustomRule 
+                        ? 'bg-violet-100 border-violet-300' 
+                        : 'bg-white border-gray-200'
+                    )}>
                       <p className="text-sm text-gray-600 font-medium mb-1">例:</p>
-                      <code className="text-base text-gray-900 font-mono">{currentStepRule.rule.example}</code>
+                      <code className={cn(
+                        'text-base font-mono',
+                        currentStepRule.rule.isCustomRule ? 'text-violet-900' : 'text-gray-900'
+                      )}>
+                        {currentStepRule.rule.example}
+                      </code>
                     </div>
                   )}
                 </div>
