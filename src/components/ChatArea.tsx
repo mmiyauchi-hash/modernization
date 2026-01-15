@@ -161,6 +161,36 @@ export function ChatArea() {
     setCurrentStepId(stepId);
   }, [setCurrentStepId]);
 
+  // 現在のステップに関連するルールを取得
+  const currentStepRule = useMemo(() => {
+    if (!selectedCategory || selectedCategory !== 'git-migration' || !currentStepId) {
+      return null;
+    }
+
+    const phase = gitMigrationPhase.phase;
+    const scenario = gitMigrationScenario[phase];
+    if (!scenario) return null;
+
+    const currentStep = scenario.find((s) => s.id === currentStepId);
+    if (!currentStep || currentStep.inputType !== 'text' || !currentStep.validation) {
+      return null;
+    }
+
+    const relatedRule = localRules.find((r) => {
+      if (currentStep.id === 'repository-name' && r.type === 'naming') {
+        return true;
+      }
+      return false;
+    });
+
+    if (!relatedRule) return null;
+
+    return {
+      rule: relatedRule,
+      step: currentStep,
+    };
+  }, [selectedCategory, currentStepId, gitMigrationPhase.phase, localRules]);
+
   // 🔴 つまづきやすいステップに到達したら自動でヘルプを表示
   useEffect(() => {
     if (currentStepId && AUTO_HELP_STEPS.includes(currentStepId)) {
@@ -194,36 +224,6 @@ export function ChatArea() {
       return () => clearTimeout(timer);
     }
   }, [currentStepRule, currentStepId, showHelp]);
-
-  // 現在のステップに関連するルールを取得
-  const currentStepRule = useMemo(() => {
-    if (!selectedCategory || selectedCategory !== 'git-migration' || !currentStepId) {
-      return null;
-    }
-
-    const phase = gitMigrationPhase.phase;
-    const scenario = gitMigrationScenario[phase];
-    if (!scenario) return null;
-
-    const currentStep = scenario.find((s) => s.id === currentStepId);
-    if (!currentStep || currentStep.inputType !== 'text' || !currentStep.validation) {
-      return null;
-    }
-
-    const relatedRule = localRules.find((r) => {
-      if (currentStep.id === 'repository-name' && r.type === 'naming') {
-        return true;
-      }
-      return false;
-    });
-
-    if (!relatedRule) return null;
-
-    return {
-      rule: relatedRule,
-      step: currentStep,
-    };
-  }, [selectedCategory, currentStepId, gitMigrationPhase.phase, localRules]);
 
   // 初期メッセージを追加（一度だけ）
   useEffect(() => {
