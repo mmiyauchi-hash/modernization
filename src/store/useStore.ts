@@ -14,9 +14,119 @@ interface HelpGuide {
   image?: string;
 }
 
+// プロジェクト情報の型
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  team: string;
+  startDate: string;
+  endDate: string;
+  courses: {
+    'git-migration': number;
+    'ci-cd': number;
+    'unit-test': number;
+    'e2e-test': number;
+    'monitoring': number;
+  };
+}
+
+// デフォルトプロジェクト一覧
+const defaultProjects: ProjectInfo[] = [
+  { 
+    id: 'proj-1',
+    name: '基幹システムA', 
+    team: '情報システム部',
+    startDate: '2025-10-01',
+    endDate: '2025-12-15',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 100,
+      'unit-test': 100,
+      'e2e-test': 100,
+      'monitoring': 100,
+    }
+  },
+  { 
+    id: 'proj-2',
+    name: '顧客管理システム', 
+    team: '営業支援部',
+    startDate: '2025-11-01',
+    endDate: '2026-02-28',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 85,
+      'unit-test': 70,
+      'e2e-test': 50,
+      'monitoring': 20,
+    }
+  },
+  { 
+    id: 'proj-3',
+    name: '社内ポータル', 
+    team: '総務部',
+    startDate: '2025-12-01',
+    endDate: '2026-03-31',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 60,
+      'unit-test': 40,
+      'e2e-test': 15,
+      'monitoring': 0,
+    }
+  },
+  { 
+    id: 'proj-4',
+    name: '在庫管理システム', 
+    team: '物流部',
+    startDate: '2026-01-05',
+    endDate: '2026-04-30',
+    courses: {
+      'git-migration': 80,
+      'ci-cd': 30,
+      'unit-test': 20,
+      'e2e-test': 10,
+      'monitoring': 0,
+    }
+  },
+  { 
+    id: 'proj-5',
+    name: '経費精算システム', 
+    team: '経理部',
+    startDate: '2026-01-10',
+    endDate: '2026-05-31',
+    courses: {
+      'git-migration': 50,
+      'ci-cd': 0,
+      'unit-test': 0,
+      'e2e-test': 0,
+      'monitoring': 0,
+    }
+  },
+  { 
+    id: 'proj-6',
+    name: '人事評価システム', 
+    team: '人事部',
+    startDate: '2026-02-01',
+    endDate: '2026-06-30',
+    courses: {
+      'git-migration': 0,
+      'ci-cd': 0,
+      'unit-test': 0,
+      'e2e-test': 0,
+      'monitoring': 0,
+    }
+  },
+];
+
 interface AppState {
   // 現在選択中のカテゴリー
   selectedCategory: ModernizationCategory | null;
+  
+  // 現在選択中のプロジェクト
+  selectedProject: string | null;
+  
+  // プロジェクト一覧
+  projects: ProjectInfo[];
   
   // カテゴリー一覧（動的管理）
   categories: CategoryInfo[];
@@ -45,6 +155,7 @@ interface AppState {
   
   // アクション
   setSelectedCategory: (category: ModernizationCategory | null) => void;
+  setSelectedProject: (projectId: string | null) => void;
   setCategories: (categories: CategoryInfo[]) => void;
   addCategory: (category: CategoryInfo) => void;
   updateCategory: (id: string, updates: Partial<CategoryInfo>) => void;
@@ -80,6 +191,10 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       selectedCategory: null,
+      
+      selectedProject: null,
+      
+      projects: defaultProjects,
       
       categories: defaultCategories,
       
@@ -125,6 +240,8 @@ export const useStore = create<AppState>()(
       helpGuideContent: null,
       
       setSelectedCategory: (category) => set({ selectedCategory: category }),
+      
+      setSelectedProject: (projectId) => set({ selectedProject: projectId }),
       
       setCategories: (categories) => set({ categories }),
       

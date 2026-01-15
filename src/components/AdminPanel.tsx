@@ -148,94 +148,6 @@ const courseDefinitions = [
   { id: 'monitoring', name: '運用監視', icon: '📊' },
 ];
 
-// プロジェクト進捗モックデータ（コース別進捗を含む）
-const mockProjects = [
-  { 
-    id: 'proj-1',
-    name: '基幹システムA', 
-    team: '情報システム部',
-    startDate: '2025-10-01',
-    endDate: '2025-12-15',
-    courses: {
-      'git-migration': 100,
-      'ci-cd': 100,
-      'unit-test': 100,
-      'e2e-test': 100,
-      'monitoring': 100,
-    }
-  },
-  { 
-    id: 'proj-2',
-    name: '顧客管理システム', 
-    team: '営業支援部',
-    startDate: '2025-11-01',
-    endDate: '2026-02-28',
-    courses: {
-      'git-migration': 100,
-      'ci-cd': 85,
-      'unit-test': 70,
-      'e2e-test': 50,
-      'monitoring': 20,
-    }
-  },
-  { 
-    id: 'proj-3',
-    name: '社内ポータル', 
-    team: '総務部',
-    startDate: '2025-12-01',
-    endDate: '2026-03-31',
-    courses: {
-      'git-migration': 100,
-      'ci-cd': 60,
-      'unit-test': 40,
-      'e2e-test': 15,
-      'monitoring': 0,
-    }
-  },
-  { 
-    id: 'proj-4',
-    name: '在庫管理システム', 
-    team: '物流部',
-    startDate: '2026-01-05',
-    endDate: '2026-04-30',
-    courses: {
-      'git-migration': 80,
-      'ci-cd': 30,
-      'unit-test': 20,
-      'e2e-test': 10,
-      'monitoring': 0,
-    }
-  },
-  { 
-    id: 'proj-5',
-    name: '経費精算システム', 
-    team: '経理部',
-    startDate: '2026-01-10',
-    endDate: '2026-05-31',
-    courses: {
-      'git-migration': 50,
-      'ci-cd': 0,
-      'unit-test': 0,
-      'e2e-test': 0,
-      'monitoring': 0,
-    }
-  },
-  { 
-    id: 'proj-6',
-    name: '人事評価システム', 
-    team: '人事部',
-    startDate: '2026-02-01',
-    endDate: '2026-06-30',
-    courses: {
-      'git-migration': 0,
-      'ci-cd': 0,
-      'unit-test': 0,
-      'e2e-test': 0,
-      'monitoring': 0,
-    }
-  },
-];
-
 // プロジェクトの全体進捗を計算
 const calculateOverallProgress = (courses: Record<string, number>): number => {
   const values = Object.values(courses);
@@ -265,7 +177,7 @@ const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_
 };
 
 export function AdminPanel() {
-  const { categories, addCategory, updateCategory, deleteCategory } = useStore();
+  const { categories, addCategory, updateCategory, deleteCategory, projects } = useStore();
   const [viewMode, setViewMode] = useState<AdminViewMode>('dashboard');
   const [structure, setStructure] = useState<BusinessRuleDirectory[]>(initialStructure);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['dir-git-migration']));
@@ -888,7 +800,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-green-700">完了</p>
                       <p className="text-3xl font-bold text-green-800">
-                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'completed').length}
+                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'completed').length}
                       </p>
                     </div>
                   </div>
@@ -901,7 +813,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-blue-700">進行中</p>
                       <p className="text-3xl font-bold text-blue-800">
-                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'in_progress').length}
+                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'in_progress').length}
                       </p>
                     </div>
                   </div>
@@ -914,7 +826,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-amber-700">着手</p>
                       <p className="text-3xl font-bold text-amber-800">
-                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'started').length}
+                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'started').length}
                       </p>
                     </div>
                   </div>
@@ -927,7 +839,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">未着手</p>
                       <p className="text-3xl font-bold text-gray-700">
-                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'not_started').length}
+                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'not_started').length}
                       </p>
                     </div>
                   </div>
@@ -949,14 +861,14 @@ export function AdminPanel() {
                   <div className="text-right">
                     <p className="text-sm text-gray-500">全体平均進捗</p>
                     <p className="text-3xl font-bold text-teal-600">
-                      {Math.round(mockProjects.reduce((acc, p) => acc + calculateOverallProgress(p.courses), 0) / mockProjects.length)}%
+                      {Math.round(projects.reduce((acc, p) => acc + calculateOverallProgress(p.courses), 0) / projects.length)}%
                     </p>
                   </div>
                 </div>
 
                 {/* プロジェクト一覧（棒グラフ） */}
                 <div className="space-y-3">
-                  {mockProjects.map((project) => {
+                  {projects.map((project) => {
                     const overallProgress = calculateOverallProgress(project.courses);
                     const status = getStatusFromProgress(overallProgress);
                     const statusConfig = getStatusConfig(status);
