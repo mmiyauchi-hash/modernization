@@ -171,6 +171,11 @@ interface AppState {
   showHelp: (guide: HelpGuide) => void;
   hideHelp: () => void;
   goToMessage: (messageId: string) => void; // 指定したメッセージの時点に戻る
+  
+  // プロジェクト管理
+  addProject: (project: ProjectInfo) => void;
+  updateProject: (id: string, updates: Partial<ProjectInfo>) => void;
+  deleteProject: (id: string) => void;
 }
 
 // Dateオブジェクトを文字列に変換するカスタムシリアライザー
@@ -356,6 +361,24 @@ export const useStore = create<AppState>()(
           },
         };
       }),
+      
+      // プロジェクト管理
+      addProject: (project) =>
+        set((state) => ({
+          projects: [...state.projects, project],
+        })),
+      
+      updateProject: (id, updates) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        })),
+      
+      deleteProject: (id) =>
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+        })),
     }),
     {
       name: 'devops-modernization-progress', // localStorageのキー名

@@ -863,75 +863,14 @@ export function ChatArea() {
 
       {/* 入力エリア */}
       <div className="border-t border-gray-200 bg-white p-6">
-        <div className="max-w-3xl mx-auto space-y-4">
-          {/* ルールガイド */}
-          {currentStepRule && (
-            <div className={cn(
-              'rounded-xl p-5 animate-fade-in',
-              currentStepRule.rule.isCustomRule
-                ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-400 shadow-lg ring-2 ring-violet-200 ring-offset-2'
-                : 'bg-blue-50 border-2 border-blue-200'
-            )}>
-              <div className="flex items-start gap-4">
-                <div className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0',
-                  currentStepRule.rule.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md' : 'bg-blue-500'
-                )}>
-                  {currentStepRule.rule.isCustomRule ? (
-                    <span className="text-xl">🏢</span>
-                  ) : (
-                    <Info className="w-5 h-5 text-white" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  {currentStepRule.rule.isCustomRule && (
-                    <div className="mb-3 flex items-center gap-3">
-                      <span className="px-4 py-1.5 text-sm font-bold rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
-                        🏢 社内独自ルール
-                      </span>
-                      <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
-                    </div>
-                  )}
-                  <h4 className={cn(
-                    'font-bold text-lg mb-1',
-                    currentStepRule.rule.isCustomRule ? 'text-violet-900' : 'text-gray-900'
-                  )}>
-                    {currentStepRule.rule.name}
-                  </h4>
-                  <p className={cn(
-                    'text-base mb-3',
-                    currentStepRule.rule.isCustomRule ? 'text-violet-800' : 'text-gray-700'
-                  )}>
-                    {currentStepRule.rule.description}
-                  </p>
-                  {currentStepRule.rule.example && (
-                    <div className={cn(
-                      'p-3 rounded-lg border',
-                      currentStepRule.rule.isCustomRule 
-                        ? 'bg-violet-100 border-violet-300' 
-                        : 'bg-white border-gray-200'
-                    )}>
-                      <p className="text-sm text-gray-600 font-medium mb-1">例:</p>
-                      <code className={cn(
-                        'text-base font-mono',
-                        currentStepRule.rule.isCustomRule ? 'text-violet-900' : 'text-gray-900'
-                      )}>
-                        {currentStepRule.rule.example}
-                      </code>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
+        <div className="max-w-3xl mx-auto">
           {/* 入力フォーム */}
           <div className="flex gap-4">
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={currentStepRule ? "上記のルールに従って入力してください..." : "メッセージを入力..."}
+              placeholder="メッセージを入力..."
               className="flex-1 h-14 text-base px-5 rounded-xl border-2 border-gray-200 focus:border-teal-500 bg-white"
             />
             <Button 

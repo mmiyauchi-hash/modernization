@@ -1,7 +1,7 @@
 import { useStore } from '../store/useStore';
 import { ChatArea } from './ChatArea';
 import { Button } from './ui/button';
-import { ArrowLeft, CheckCircle2, Circle, RotateCcw, HelpCircle, X, Lightbulb, ArrowRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, RotateCcw, HelpCircle, X, Lightbulb, ArrowRight, Save, Check } from 'lucide-react';
 import { getStepStatus } from '../lib/gitSteps';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -12,6 +12,13 @@ export function GitGuideLayout() {
   const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, setSelectedCategory, showHelpGuide, helpGuideContent, hideHelp, localRules, currentStepId } = useStore();
   const navigate = useNavigate();
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+
+  // 保存ボタン処理
+  const handleSave = () => {
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  };
 
   // 🔴 現在のステップに関連する社内独自ルールを取得
   const currentStepRule = useMemo(() => {
@@ -196,7 +203,7 @@ export function GitGuideLayout() {
           {/* ステップ一覧 - Progate風 */}
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">
-              レッスン内容
+              タスク一覧
             </h3>
             {steps.map((step, index) => {
               const isCurrentPhase = step.phase === gitMigrationPhase.phase;
@@ -258,13 +265,37 @@ export function GitGuideLayout() {
       
       {/* メインコンテンツエリア */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* ヘッダー - 進捗バー */}
+        {/* ヘッダー - 進捗バーと保存ボタン */}
         <div className="bg-white border-b border-gray-200 px-8 py-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-base font-semibold text-gray-700">進捗状況</span>
-            <span className="text-base font-bold text-teal-600">
-              {gitProgress.progress}% 完了
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="text-base font-bold text-teal-600">
+                {gitProgress.progress}% 完了
+              </span>
+              <Button
+                onClick={handleSave}
+                size="sm"
+                className={cn(
+                  'gap-2 font-bold transition-all',
+                  showSaved 
+                    ? 'bg-green-500 hover:bg-green-600' 
+                    : 'bg-teal-500 hover:bg-teal-600'
+                )}
+              >
+                {showSaved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    保存しました
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    進捗を保存
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 

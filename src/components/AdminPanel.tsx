@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Upload,
   MessageSquare,
-  Menu,
   X,
   Save,
   BarChart3,
@@ -137,7 +136,7 @@ const createInitialStructure = (): BusinessRuleDirectory[] => {
 
 const initialStructure = createInitialStructure();
 
-type AdminViewMode = 'business-rules' | 'menu-management' | 'dashboard';
+type AdminViewMode = 'dashboard' | 'project-management' | 'task-management';
 
 // コース定義
 const courseDefinitions = [
@@ -171,7 +170,7 @@ const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_
 };
 
 export function AdminPanel() {
-  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject } = useStore();
+  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject, addProject, updateProject, deleteProject } = useStore();
   
   // 実際のコース進捗を取得（progressストアから）
   const getActualCourseProgress = (categoryId: string): number => {
@@ -205,6 +204,12 @@ export function AdminPanel() {
     parentId?: string;
   } | null>(null);
   const [markdownEditor, setMarkdownEditor] = useState<{ ruleId: string; content: string; naturalLanguage: string } | null>(null);
+  
+  // プロジェクト管理用state
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState('');
+  const [editingProjectTeam, setEditingProjectTeam] = useState('');
+  const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string | null>(null);
   
   // メニュー管理用の状態
   const [menuCreationMode, setMenuCreationMode] = useState<'none' | 'markdown' | 'natural-language'>('none');
@@ -753,7 +758,7 @@ export function AdminPanel() {
                 管理者画面
               </h2>
               <p className="text-base text-gray-600 mt-1">
-                業務ルールとメニューの管理
+                プロジェクトとタスクの管理
               </p>
             </div>
           </div>
@@ -772,30 +777,30 @@ export function AdminPanel() {
               進捗レポート
             </Button>
             <Button
-              onClick={() => setViewMode('business-rules')}
-              variant={viewMode === 'business-rules' ? 'default' : 'outline'}
+              onClick={() => setViewMode('project-management')}
+              variant={viewMode === 'project-management' ? 'default' : 'outline'}
               className={cn(
                 'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
-                viewMode === 'business-rules' 
+                viewMode === 'project-management' 
+                  ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <Folder className="w-5 h-5" />
+              プロジェクト管理
+            </Button>
+            <Button
+              onClick={() => setViewMode('task-management')}
+              variant={viewMode === 'task-management' ? 'default' : 'outline'}
+              className={cn(
+                'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
+                viewMode === 'task-management' 
                   ? 'bg-teal-500 text-white hover:bg-teal-600' 
                   : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
               )}
             >
               <FileText className="w-5 h-5" />
-              業務ルール
-            </Button>
-            <Button
-              onClick={() => setViewMode('menu-management')}
-              variant={viewMode === 'menu-management' ? 'default' : 'outline'}
-              className={cn(
-                'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
-                viewMode === 'menu-management' 
-                  ? 'bg-teal-500 text-white hover:bg-teal-600' 
-                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
-              )}
-            >
-              <Menu className="w-5 h-5" />
-              メニュー管理
+              タスク管理
             </Button>
           </div>
         </div>
@@ -813,8 +818,8 @@ export function AdminPanel() {
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
                       <CheckCircle2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
+                </div>
+                <div>
                       <p className="text-sm font-medium text-green-700">完了</p>
                       <p className="text-3xl font-bold text-green-800">
                         {projects.filter(p => getStatusFromProgress(calculateProjectProgress(p)) === 'completed').length}
@@ -872,7 +877,7 @@ export function AdminPanel() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">プロジェクト進捗サマリー</h3>
-                      <p className="text-base text-gray-600">プロジェクトをクリックするとコース別の進捗を確認できます</p>
+                      <p className="text-base text-gray-600">プロジェクトをクリックするとタスク別の進捗を確認できます</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -960,11 +965,11 @@ export function AdminPanel() {
                           </div>
                         </div>
                         
-                        {/* 展開時：コース別進捗 */}
+                        {/* 展開時：タスク別進捗 */}
                         {isExpanded && (
                           <div className="p-4 bg-white">
                             <div className="mb-3">
-                              <h5 className="text-sm font-bold text-gray-600 mb-1">コース別進捗状況</h5>
+                              <h5 className="text-sm font-bold text-gray-600 mb-1">タスク別進捗状況</h5>
                               <p className="text-xs text-gray-500">各コースの進捗率から全体進捗が計算されます</p>
                             </div>
                             <div className="space-y-3">
@@ -1065,17 +1070,219 @@ export function AdminPanel() {
             </div>
           )}
 
-          {/* メニュー管理モード */}
-          {viewMode === 'menu-management' && (
-            <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
-                  <Menu className="w-6 h-6 text-white" />
+          {/* プロジェクト管理モード */}
+          {viewMode === 'project-management' && (
+            <div className="space-y-6">
+              <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                      <Folder className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">プロジェクト管理</h3>
+                      <p className="text-base text-gray-600">プロジェクトの追加・削除・編集</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      const newProject = {
+                        id: `project-${Date.now()}`,
+                        name: '新規プロジェクト',
+                        team: '未設定',
+                        startDate: new Date().toISOString().split('T')[0],
+                        endDate: '',
+                        courses: {
+                          'git-migration': 0,
+                          'ci-cd': 0,
+                          'unit-test': 0,
+                          'e2e-test': 0,
+                          'monitoring': 0,
+                        }
+                      };
+                      addProject(newProject);
+                    }}
+                    className="gap-2 bg-teal-500 hover:bg-teal-600 text-white font-semibold shadow-sm"
+                  >
+                    <Plus className="w-5 h-5" />
+                    プロジェクトを追加
+                  </Button>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">メニュー管理</h3>
-                  <p className="text-base text-gray-600">サイドバーに表示されるメニューを管理</p>
+
+                {/* プロジェクト一覧 */}
+                <div className="space-y-4">
+                  {projects.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <Folder className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">プロジェクトがありません</p>
+                      <p className="text-sm">上のボタンからプロジェクトを追加してください</p>
+                    </div>
+                  ) : (
+                    projects.map((project) => (
+                      <div
+                        key={project.id}
+                        className="p-5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-white transition-all"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            {editingProjectId === project.id ? (
+                              <div className="space-y-3">
+                                <Input
+                                  value={editingProjectName}
+                                  onChange={(e) => setEditingProjectName(e.target.value)}
+                                  placeholder="プロジェクト名"
+                                  className="font-bold text-lg"
+                                />
+                                <Input
+                                  value={editingProjectTeam}
+                                  onChange={(e) => setEditingProjectTeam(e.target.value)}
+                                  placeholder="担当チーム"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      updateProject(project.id, {
+                                        name: editingProjectName,
+                                        team: editingProjectTeam
+                                      });
+                                      setEditingProjectId(null);
+                                    }}
+                                    className="bg-teal-500 hover:bg-teal-600 text-white"
+                                  >
+                                    保存
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingProjectId(null)}
+                                  >
+                                    キャンセル
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="text-lg font-bold text-gray-900">{project.name}</h4>
+                                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-700">
+                                    {project.team}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                  <span>開始: {project.startDate || '未設定'}</span>
+                                  <span>終了予定: {project.endDate || '未設定'}</span>
+                                  <span className="font-medium text-teal-600">
+                                    進捗: {calculateProjectProgress(project)}%
+                                  </span>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {Object.entries(project.courses).map(([courseId, progress]) => {
+                                    const courseDef = courseDefinitions.find(c => c.id === courseId);
+                                    return (
+                                      <span
+                                        key={courseId}
+                                        className="px-2 py-1 text-xs rounded-lg bg-gray-100 text-gray-600"
+                                      >
+                                        {courseDef?.name || courseId}: {progress}%
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {editingProjectId !== project.id && (
+                            <div className="flex items-center gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingProjectId(project.id);
+                                  setEditingProjectName(project.name);
+                                  setEditingProjectTeam(project.team);
+                                }}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedProjectForTasks(project.id);
+                                  setViewMode('task-management');
+                                }}
+                                className="text-teal-600 border-teal-200 hover:bg-teal-50"
+                              >
+                                <FileText className="w-4 h-4 mr-1" />
+                                タスク管理
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm(`プロジェクト「${project.name}」を削除しますか？`)) {
+                                    deleteProject(project.id);
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+              </Card>
+
+              {/* 説明カード */}
+              <Card className="p-5 bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200 rounded-xl">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-lg">💡</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">プロジェクト管理について</h4>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      ここで追加したプロジェクトは通常画面のサイドバーにも反映されます。
+                      各プロジェクトの「タスク管理」ボタンから、そのプロジェクトに含まれるタスクと業務フローを管理できます。
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* タスク管理モード */}
+          {viewMode === 'task-management' && (
+            <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">タスク管理</h3>
+                    <p className="text-base text-gray-600">
+                      {selectedProjectForTasks 
+                        ? `${projects.find(p => p.id === selectedProjectForTasks)?.name || 'プロジェクト'}のタスクを管理`
+                        : '各プロジェクトのタスクと業務フローを管理'}
+                    </p>
+                  </div>
+                </div>
+                {selectedProjectForTasks && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedProjectForTasks(null)}
+                    className="gap-2"
+                  >
+                    <ChevronRight className="w-4 h-4 rotate-180" />
+                    全タスク表示
+                  </Button>
+                )}
               </div>
 
               {/* 新規作成ボタン */}
@@ -1204,9 +1411,9 @@ export function AdminPanel() {
                 </div>
               )}
 
-              {/* 既存メニュー一覧 */}
+              {/* タスク一覧 */}
               <div className="space-y-3">
-                <h4 className="text-sm font-bold text-gray-900 mb-3">メニュー一覧</h4>
+                <h4 className="text-sm font-bold text-gray-900 mb-3">タスク一覧</h4>
                 {categories.map((category) => {
                   const Icon = getCategoryIcon(category.icon);
                   const isEditing = editingCategory?.id === category.id;
@@ -1297,8 +1504,8 @@ export function AdminPanel() {
             </Card>
           )}
 
-          {/* 業務ルール管理モード */}
-          {viewMode === 'business-rules' && (
+          {/* 業務フロー管理セクション（タスク管理の下に表示） */}
+          {viewMode === 'task-management' && (
             <>
               {/* ツールバー */}
               <div className="flex gap-3 mb-4 justify-end">
