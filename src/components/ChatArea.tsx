@@ -146,6 +146,7 @@ export function ChatArea() {
     currentStepId: savedCurrentStepId,
     setCurrentStepId,
     showHelp,
+    hideHelp,
     goToMessage,
   } = useStore();
   
@@ -201,6 +202,17 @@ export function ChatArea() {
       step: currentStep,
     };
   }, [selectedCategory, currentStepId, gitMigrationPhase.phase, localRules]);
+
+  // 🔴 ステップが変更されたときに、前のステップのヘルプパネルを閉じる
+  const prevStepIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    // ステップが変更された場合（前のステップと異なる場合）
+    if (prevStepIdRef.current !== null && prevStepIdRef.current !== currentStepId) {
+      // 前のステップのヘルプパネルを閉じる
+      hideHelp();
+    }
+    prevStepIdRef.current = currentStepId;
+  }, [currentStepId, hideHelp]);
 
   // 🔴 つまづきやすいステップに到達したら自動でヘルプを表示
   useEffect(() => {
