@@ -127,7 +127,7 @@ const createInitialStructure = (): BusinessRuleDirectory[] => {
     {
       id: 'dir-git-migration',
       name: 'Git移行業務',
-      description: 'SubversionからGitへの移行に関する業務ルール',
+      description: 'SubversionからGitへの移行に関するワークフロー',
       order: 1,
       categories
     }
@@ -211,6 +211,9 @@ export function AdminPanel() {
   const [editingProjectTeam, setEditingProjectTeam] = useState('');
   const [selectedProjectForTasks, setSelectedProjectForTasks] = useState<string | null>(null);
   
+  // タスク展開用state（クリックでワークフロー構造を表示）
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  
   // メニュー管理用の状態
   const [menuCreationMode, setMenuCreationMode] = useState<'none' | 'markdown' | 'natural-language'>('none');
   const [markdownFile, setMarkdownFile] = useState<File | null>(null);
@@ -291,7 +294,7 @@ export function AdminPanel() {
 
     const newRule: BusinessRule = {
       id: `rule-${Date.now()}`,
-      name: '新しい業務ルール',
+      name: '新しいワークフロー',
       description: '',
       order: cat.rules.length + 1,
       data: {
@@ -583,8 +586,8 @@ export function AdminPanel() {
 
   // 構造化データをMarkdown形式に変換
   const convertStructureToMarkdown = (): string => {
-    let markdown = '# 業務ルール\n\n';
-    markdown += 'このファイルは業務ルールを構造化された形式で管理します。\n\n';
+    let markdown = '# ワークフロー\n\n';
+    markdown += 'このファイルはワークフローを構造化された形式で管理します。\n\n';
     markdown += '---\n\n';
 
     structure.forEach((dir) => {
@@ -643,7 +646,7 @@ export function AdminPanel() {
     a.download = 'business-rules.md';
     a.click();
     URL.revokeObjectURL(url);
-    alert('業務ルールが保存されました。Markdown形式でエクスポートされました。');
+    alert('ワークフローが保存されました。Markdown形式でエクスポートされました。');
   };
 
   // マークダウンファイルのインポート処理
@@ -1417,83 +1420,268 @@ export function AdminPanel() {
                 {categories.map((category) => {
                   const Icon = getCategoryIcon(category.icon);
                   const isEditing = editingCategory?.id === category.id;
+                  const isExpanded = expandedTaskId === category.id;
+                  
+                  // このタスクに関連するワークフロー構造を取得
+                  const taskWorkflowDir = structure.find(dir => 
+                    dir.id === `dir-${category.id}` || dir.name.toLowerCase().includes(category.id.replace('-', ' '))
+                  ) || structure[0]; // デフォルトはGit移行
                   
                   return (
                     <div
                       key={category.id}
-                      className="p-4 rounded-xl border border-gray-200/50 bg-white/80 hover:bg-white/90 transition-all"
+                      className="rounded-xl border border-gray-200/50 bg-white/80 overflow-hidden transition-all"
                     >
-                      {isEditing ? (
-                        <div className="space-y-3">
-                          <Input
-                            value={editingCategory.name}
-                            onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                            placeholder="カテゴリー名"
-                            className="mb-2"
-                          />
-                          <Input
-                            value={editingCategory.description}
-                            onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
-                            placeholder="説明"
-                            className="mb-2"
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                if (editingCategory) {
-                                  updateCategory(category.id, {
-                                    name: editingCategory.name,
-                                    description: editingCategory.description,
-                                    icon: editingCategory.icon,
-                                  });
-                                  setEditingCategory(null);
-                                }
-                              }}
-                              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                            >
-                              保存
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingCategory(null)}
-                            >
-                              キャンセル
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                              <Icon className="w-5 h-5 text-white" />
+                      {/* タスクヘッダー（クリックで展開） */}
+                      <div
+                        className={cn(
+                          'p-4 cursor-pointer hover:bg-white/90 transition-all',
+                          isExpanded && 'bg-teal-50/50 border-b border-gray-200/50'
+                        )}
+                        onClick={() => {
+                          if (!isEditing) {
+                            setExpandedTaskId(isExpanded ? null : category.id);
+                          }
+                        }}
+                      >
+                        {isEditing ? (
+                          <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={editingCategory.name}
+                              onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                              placeholder="タスク名"
+                              className="mb-2"
+                            />
+                            <Input
+                              value={editingCategory.description}
+                              onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                              placeholder="説明"
+                              className="mb-2"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  if (editingCategory) {
+                                    updateCategory(category.id, {
+                                      name: editingCategory.name,
+                                      description: editingCategory.description,
+                                      icon: editingCategory.icon,
+                                    });
+                                    setEditingCategory(null);
+                                  }
+                                }}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                              >
+                                保存
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingCategory(null)}
+                              >
+                                キャンセル
+                              </Button>
                             </div>
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-gray-900">{category.name}</h5>
-                              <p className="text-xs text-gray-600">{category.description}</p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className={cn(
+                                'w-10 h-10 rounded-lg flex items-center justify-center transition-all',
+                                isExpanded 
+                                  ? 'bg-teal-500' 
+                                  : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                              )}>
+                                <Icon className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-gray-900">{category.name}</h5>
+                                <p className="text-xs text-gray-600">{category.description}</p>
+                              </div>
+                              {isExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-teal-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingCategory(category)}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm('このタスクを削除しますか？')) {
+                                    deleteCategory(category.id);
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingCategory(category)}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                if (confirm('このメニューを削除しますか？')) {
-                                  deleteCategory(category.id);
-                                }
-                              }}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                        )}
+                      </div>
+                      
+                      {/* ワークフロー構造（展開時に表示） */}
+                      {isExpanded && taskWorkflowDir && (
+                        <div className="p-4 bg-gray-50/50">
+                          <div className="flex items-center justify-between mb-4">
+                            <h5 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                              <Folder className="w-4 h-4 text-teal-600" />
+                              ワークフロー構造
+                            </h5>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => addCategoryToDirectory(taskWorkflowDir.id)}
+                                className="text-xs"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                カテゴリー追加
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* ワークフローカテゴリー */}
+                          <div className="space-y-2">
+                            {taskWorkflowDir.categories.map((cat) => (
+                              <div key={cat.id} className="border border-gray-200/50 rounded-lg overflow-hidden bg-white">
+                                <div className="p-3 pl-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <button
+                                        onClick={() => toggleCat(cat.id)}
+                                        className="p-1 hover:bg-gray-200/50 rounded transition-all"
+                                      >
+                                        {expandedCats.has(cat.id) ? (
+                                          <ChevronDown className="w-4 h-4 text-gray-600" />
+                                        ) : (
+                                          <ChevronRight className="w-4 h-4 text-gray-600" />
+                                        )}
+                                      </button>
+                                      <FileText className="w-4 h-4 text-purple-500" />
+                                      <span className="font-medium text-gray-800">{cat.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => addRule(taskWorkflowDir.id, cat.id)}
+                                        className="text-xs"
+                                      >
+                                        <Plus className="w-3 h-3 mr-1" />
+                                        ワークフロー
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => deleteItem('category', cat.id, taskWorkflowDir.id)}
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* ワークフロー詳細 */}
+                                {expandedCats.has(cat.id) && (
+                                  <div className="bg-gray-50/50 pl-8">
+                                    {cat.rules.map((rule) => (
+                                      <div key={rule.id} className="p-3 border-b border-gray-200/30 last:border-b-0">
+                                        <div className="flex items-start justify-between gap-4">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <h4 className="font-semibold text-gray-900 text-sm">{rule.name}</h4>
+                                              {rule.isCustomRule && (
+                                                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gradient-to-r from-violet-400 to-purple-500 text-white shadow-sm">
+                                                  社内独自ルール
+                                                </span>
+                                              )}
+                                            </div>
+                                            {rule.description && (
+                                              <p className="text-xs text-gray-600 mb-2">{rule.description}</p>
+                                            )}
+                                            <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                                              <input
+                                                type="checkbox"
+                                                checked={rule.isCustomRule || false}
+                                                onChange={(e) => {
+                                                  updateItem('rule', rule.id, { isCustomRule: e.target.checked }, cat.id);
+                                                }}
+                                                className="w-3 h-3 rounded border-gray-300 text-indigo-600"
+                                              />
+                                              <span className="text-gray-700">社内独自ルール</span>
+                                            </label>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => openMarkdownEditor(rule)}
+                                              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs px-2 py-1"
+                                            >
+                                              MD編集
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => deleteItem('rule', rule.id, cat.id)}
+                                              className="text-red-600 hover:text-red-700"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* MDエディタ */}
+                                        {markdownEditor && markdownEditor.ruleId === rule.id && (
+                                          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200/50">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <h5 className="text-xs font-bold text-gray-900">自然言語で編集</h5>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => setMarkdownEditor(null)}
+                                                className="h-5 w-5 p-0"
+                                              >
+                                                ×
+                                              </Button>
+                                            </div>
+                                            <textarea
+                                              value={markdownEditor.naturalLanguage}
+                                              onChange={(e) => setMarkdownEditor({ ...markdownEditor, naturalLanguage: e.target.value })}
+                                              className="w-full h-32 text-xs p-2 rounded border border-gray-200 bg-white resize-y"
+                                              placeholder="自然言語で自由に記述してください。"
+                                            />
+                                            <div className="mt-2 flex justify-end gap-2">
+                                              <Button size="sm" variant="outline" onClick={() => setMarkdownEditor(null)}>
+                                                キャンセル
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                onClick={() => saveMarkdownEditor(taskWorkflowDir.id, cat.id)}
+                                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                                              >
+                                                確定
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -1533,7 +1721,7 @@ export function AdminPanel() {
                 <Folder className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">
-                業務ルール構造
+                ワークフロー構造
               </h3>
             </div>
 
@@ -1677,7 +1865,7 @@ export function AdminPanel() {
                                   className="text-xs"
                                 >
                                   <Plus className="w-3 h-3 mr-1" />
-                                  業務
+                                  ワークフロー
                                 </Button>
                                 <Button
                                   size="sm"
@@ -1691,7 +1879,7 @@ export function AdminPanel() {
                             </div>
                           </div>
 
-                          {/* 業務ルール */}
+                          {/* ワークフロー */}
                           {expandedCats.has(cat.id) && (
                             <div className="bg-white/30 pl-16">
                               {cat.rules.map((rule) => (
@@ -1770,7 +1958,7 @@ export function AdminPanel() {
                                     </div>
                                   </div>
                                   
-                                  {/* 自然言語エディタ（業務ルールの直下に表示） */}
+                                  {/* 自然言語エディタ（ワークフローの直下に表示） */}
                                   {markdownEditor && markdownEditor.ruleId === rule.id && (
                                     <div className="mt-4 p-4 bg-gray-50/80 rounded-xl border border-gray-200/50">
                                       <div className="flex items-center justify-between mb-3">
@@ -1838,13 +2026,13 @@ export function AdminPanel() {
               </h3>
             </div>
             <p className="text-sm mb-4 opacity-90 leading-relaxed">
-              この管理画面で作成した業務ルールは、以下の形式で保存されます：
+              この管理画面で作成したワークフローは、以下の形式で保存されます：
             </p>
             <div className="bg-white/10 rounded-xl p-4 border border-white/20 mb-4">
               <pre className="text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-{`# 業務ルール
+{`# ワークフロー
 
-## Git移行業務
+## Git移行ワークフロー
 
 ### 移行前準備
 
@@ -1871,7 +2059,7 @@ SubversionリポジトリのURLと構造を確認する
               </pre>
             </div>
             <p className="text-sm opacity-90">
-              AIはこのMarkdown形式を読み込んで、業務ルールに基づいたガイドを提供できます。
+              AIはこのMarkdown形式を読み込んで、ワークフローに基づいたガイドを提供できます。
               構造化データはMarkdown内に埋め込まれ、人間にも読みやすい形式です。
             </p>
           </Card>

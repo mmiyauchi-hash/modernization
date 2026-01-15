@@ -6,13 +6,13 @@ import { GitBranch, Workflow, TestTube, Monitor, Activity } from 'lucide-react';
 export const categories: CategoryInfo[] = [
   {
     id: 'git-migration',
-    name: 'Git切り替えガイド',
+    name: 'Git切り替え',
     description: 'Subversion → Git',
     icon: 'GitBranch',
   },
   {
     id: 'ci-cd',
-    name: 'ビルド/デプロイ (CI/CD)',
+    name: 'ビルド/デプロイ（CI/CD）',
     description: 'CI/CDパイプライン構築',
     icon: 'Workflow',
   },
