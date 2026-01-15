@@ -13,12 +13,66 @@ import {
   FolderKanban,
   ChevronRight,
   Save,
-  Check
+  Check,
+  HelpCircle,
+  X,
+  Lightbulb,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useState, useEffect } from 'react';
+
+// 簡易ガイドの定義
+type GuideKey = 'gettingStarted' | 'companyRules' | 'progressSave';
+
+const QUICK_GUIDES: Record<GuideKey, {
+  title: string;
+  description: string;
+  steps: string[];
+  tips: string[];
+}> = {
+  gettingStarted: {
+    title: 'タスクの進め方',
+    description: 'プロジェクトのモダナイゼーションを効率的に進めるためのガイドです。',
+    steps: [
+      '① まずは「Git切り替えガイド」から始めましょう',
+      '② 各タスクをクリックすると詳細ガイドが表示されます',
+      '③ 順番に進めることで、スムーズに移行できます',
+    ],
+    tips: [
+      '💡 上から順番に進めるのがおすすめです',
+      '💡 困ったら「わからない」と入力するとヘルプが表示されます',
+    ],
+  },
+  companyRules: {
+    title: '社内独自ルールについて',
+    description: 'Git移行時に適用される社内ルールの概要です。',
+    steps: [
+      '📋 リポジトリ命名規則: prj-部署コード-システム名',
+      '📋 Cherry-pick は社内禁止（マージコミットを推奨）',
+      '📋 mainブランチへの直接pushは禁止',
+    ],
+    tips: [
+      '💡 ルール違反があるとガイド内で警告が表示されます',
+      '💡 紫色のハイライトは社内独自ルールの目印です',
+    ],
+  },
+  progressSave: {
+    title: '進捗の保存について',
+    description: '進捗データの保存と復元についてのご案内です。',
+    steps: [
+      '✓ 進捗は自動的にブラウザに保存されます',
+      '✓ ページを閉じても、次回アクセス時に続きから再開可能',
+      '✓ 管理者画面で全プロジェクトの進捗を一覧確認できます',
+    ],
+    tips: [
+      '💡 ブラウザのキャッシュをクリアすると進捗がリセットされます',
+      '💡 定期的にスクリーンショットで記録を残すと安心です',
+    ],
+  },
+};
 
 // ステータスを進捗率から判定
 const getStatusFromProgress = (progress: number): 'completed' | 'in_progress' | 'started' | 'not_started' => {
@@ -47,6 +101,8 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const { projects, categories, progress, setSelectedProject, setSelectedCategory } = useStore();
   const [showSaved, setShowSaved] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [currentGuide, setCurrentGuide] = useState<GuideKey>('gettingStarted');
 
   // プロジェクトを取得
   const project = projects.find(p => p.id === projectId);
@@ -57,6 +113,26 @@ export default function ProjectDetailPage() {
       setSelectedProject(projectId);
     }
   }, [projectId, setSelectedProject]);
+
+  // 初回表示時（未着手タスクが多い場合）にガイドを自動表示
+  useEffect(() => {
+    const notStartedCount = categories.filter(c => {
+      const progressItem = progress.find(p => p.category === c.id);
+      return !progressItem || progressItem.progress === 0;
+    }).length;
+    
+    // 未着手が3つ以上の場合、初回ガイドを表示
+    if (notStartedCount >= 3) {
+      setCurrentGuide('gettingStarted');
+      setShowGuide(true);
+    }
+  }, [categories, progress]);
+
+  // ガイドを表示
+  const showHelpGuide = (guideKey: GuideKey) => {
+    setCurrentGuide(guideKey);
+    setShowGuide(true);
+  };
 
   // 実際のコース進捗を取得（progressストアから）
   const getActualCourseProgress = (categoryId: string): number => {
@@ -113,18 +189,38 @@ export default function ProjectDetailPage() {
   const overallStatusConfig = getStatusConfig(overallStatus);
   const OverallStatusIcon = overallStatusConfig.icon;
 
+  const guide = QUICK_GUIDES[currentGuide];
+
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="max-w-5xl mx-auto">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-600 hover:text-teal-600 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-base font-medium">ホームに戻る</span>
-          </button>
+    <div className="flex-1 flex min-h-screen bg-gray-50">
+      {/* メインコンテンツ */}
+      <div className={cn(
+        'flex-1 flex flex-col transition-all duration-300',
+        showGuide ? 'mr-80' : ''
+      )}>
+        {/* ヘッダー */}
+        <div className="bg-white border-b border-gray-200 px-8 py-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 text-gray-600 hover:text-teal-600 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-base font-medium">ホームに戻る</span>
+              </button>
+              
+              {/* ヘルプボタン */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => showHelpGuide('gettingStarted')}
+                className="gap-2"
+              >
+                <HelpCircle className="w-4 h-4" />
+                ヘルプ
+              </Button>
+            </div>
 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-5">
@@ -265,35 +361,108 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* フッター（保存ボタン） */}
-      <div className="bg-white border-t border-gray-200 px-8 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            ※ 進捗は自動保存されています
-          </p>
-          <Button
-            onClick={handleSave}
-            className={cn(
-              'gap-2 font-bold px-6 transition-all',
-              showSaved 
-                ? 'bg-green-500 hover:bg-green-600' 
-                : 'bg-teal-500 hover:bg-teal-600'
-            )}
-          >
-            {showSaved ? (
-              <>
-                <Check className="w-5 h-5" />
-                保存しました
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                進捗を保存
-              </>
-            )}
-          </Button>
+        {/* フッター（保存ボタン） */}
+        <div className="bg-white border-t border-gray-200 px-8 py-4">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              ※ 進捗は自動保存されています
+            </p>
+            <Button
+              onClick={handleSave}
+              className={cn(
+                'gap-2 font-bold px-6 transition-all',
+                showSaved 
+                  ? 'bg-green-500 hover:bg-green-600' 
+                  : 'bg-teal-500 hover:bg-teal-600'
+              )}
+            >
+              {showSaved ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  保存しました
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  進捗を保存
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* 右側ヘルプガイドパネル */}
+      {showGuide && (
+        <div className="fixed right-0 top-0 h-screen w-80 bg-white border-l border-gray-200 shadow-xl overflow-y-auto z-50">
+          {/* ヘッダー */}
+          <div className="sticky top-0 bg-gradient-to-r from-teal-500 to-teal-600 text-white p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5" />
+                <span className="font-bold">ヘルプガイド</span>
+              </div>
+              <button
+                onClick={() => setShowGuide(false)}
+                className="p-1 rounded-lg hover:bg-white/20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <h3 className="text-lg font-bold">{guide.title}</h3>
+            <p className="text-sm text-teal-100 mt-1">{guide.description}</p>
+          </div>
+
+          {/* コンテンツ */}
+          <div className="p-5 space-y-6">
+            {/* ステップ */}
+            <div>
+              <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4 text-teal-500" />
+                ポイント
+              </h4>
+              <div className="space-y-3">
+                {guide.steps.map((step, index) => (
+                  <div key={index} className="flex gap-3 items-start">
+                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-2 rounded-lg">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ヒント */}
+            <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+              <h4 className="text-sm font-bold text-amber-800 mb-2">💡 ヒント</h4>
+              <div className="space-y-2">
+                {guide.tips.map((tip, index) => (
+                  <p key={index} className="text-sm text-amber-700">{tip}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* ガイド切り替えボタン */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 mb-3">その他のガイド</p>
+              <div className="space-y-2">
+                {(Object.keys(QUICK_GUIDES) as GuideKey[]).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setCurrentGuide(key)}
+                    className={cn(
+                      'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
+                      currentGuide === key
+                        ? 'bg-teal-100 text-teal-700 font-bold'
+                        : 'hover:bg-gray-100 text-gray-600'
+                    )}
+                  >
+                    {QUICK_GUIDES[key].title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

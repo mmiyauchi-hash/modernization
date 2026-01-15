@@ -148,12 +148,6 @@ const courseDefinitions = [
   { id: 'monitoring', name: '運用監視', icon: '📊' },
 ];
 
-// プロジェクトの全体進捗を計算
-const calculateOverallProgress = (courses: Record<string, number>): number => {
-  const values = Object.values(courses);
-  return Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
-};
-
 // ステータスを進捗率から判定
 const getStatusFromProgress = (progress: number): 'completed' | 'in_progress' | 'started' | 'not_started' => {
   if (progress === 100) return 'completed';
@@ -177,7 +171,30 @@ const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_
 };
 
 export function AdminPanel() {
-  const { categories, addCategory, updateCategory, deleteCategory, projects } = useStore();
+  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject } = useStore();
+  
+  // 実際のコース進捗を取得（progressストアから）
+  const getActualCourseProgress = (categoryId: string): number => {
+    const progressItem = progress.find(p => p.category === categoryId);
+    return progressItem?.progress || 0;
+  };
+
+  // プロジェクトの進捗を計算（選択中のプロジェクトは実際の進捗を使用）
+  const getProjectCourseProgress = (project: typeof projects[0], categoryId: string): number => {
+    // 選択中のプロジェクトの場合は実際のガイド進捗を反映
+    if (project.id === selectedProject) {
+      return getActualCourseProgress(categoryId);
+    }
+    // それ以外はモックデータの進捗を使用
+    return project.courses[categoryId as keyof typeof project.courses] || 0;
+  };
+
+  // プロジェクトの全体進捗を計算（実際の進捗を考慮）
+  const calculateProjectProgress = (project: typeof projects[0]): number => {
+    const courseIds = ['git-migration', 'ci-cd', 'unit-test', 'e2e-test', 'monitoring'] as const;
+    const total = courseIds.reduce((sum, id) => sum + getProjectCourseProgress(project, id), 0);
+    return Math.round(total / courseIds.length);
+  };
   const [viewMode, setViewMode] = useState<AdminViewMode>('dashboard');
   const [structure, setStructure] = useState<BusinessRuleDirectory[]>(initialStructure);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['dir-git-migration']));
@@ -800,7 +817,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-green-700">完了</p>
                       <p className="text-3xl font-bold text-green-800">
-                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'completed').length}
+                        {projects.filter(p => getStatusFromProgress(calculateProjectProgress(p)) === 'completed').length}
                       </p>
                     </div>
                   </div>
@@ -813,7 +830,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-blue-700">進行中</p>
                       <p className="text-3xl font-bold text-blue-800">
-                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'in_progress').length}
+                        {projects.filter(p => getStatusFromProgress(calculateProjectProgress(p)) === 'in_progress').length}
                       </p>
                     </div>
                   </div>
@@ -826,7 +843,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-amber-700">着手</p>
                       <p className="text-3xl font-bold text-amber-800">
-                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'started').length}
+                        {projects.filter(p => getStatusFromProgress(calculateProjectProgress(p)) === 'started').length}
                       </p>
                     </div>
                   </div>
@@ -839,7 +856,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">未着手</p>
                       <p className="text-3xl font-bold text-gray-700">
-                        {projects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'not_started').length}
+                        {projects.filter(p => getStatusFromProgress(calculateProjectProgress(p)) === 'not_started').length}
                       </p>
                     </div>
                   </div>
@@ -861,7 +878,7 @@ export function AdminPanel() {
                   <div className="text-right">
                     <p className="text-sm text-gray-500">全体平均進捗</p>
                     <p className="text-3xl font-bold text-teal-600">
-                      {Math.round(projects.reduce((acc, p) => acc + calculateOverallProgress(p.courses), 0) / projects.length)}%
+                      {Math.round(projects.reduce((acc, p) => acc + calculateProjectProgress(p), 0) / projects.length)}%
                     </p>
                   </div>
                 </div>
@@ -869,7 +886,7 @@ export function AdminPanel() {
                 {/* プロジェクト一覧（棒グラフ） */}
                 <div className="space-y-3">
                   {projects.map((project) => {
-                    const overallProgress = calculateOverallProgress(project.courses);
+                    const overallProgress = calculateProjectProgress(project);
                     const status = getStatusFromProgress(overallProgress);
                     const statusConfig = getStatusConfig(status);
                     const StatusIcon = statusConfig.icon;
@@ -952,7 +969,7 @@ export function AdminPanel() {
                             </div>
                             <div className="space-y-3">
                               {courseDefinitions.map((course) => {
-                                const courseProgress = project.courses[course.id as keyof typeof project.courses];
+                                const courseProgress = getProjectCourseProgress(project, course.id);
                                 const courseStatus = getStatusFromProgress(courseProgress);
                                 const courseStatusConfig = getStatusConfig(courseStatus);
                                 
