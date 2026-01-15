@@ -1,17 +1,23 @@
 import { useStore } from '../store/useStore';
 import { ChatArea } from './ChatArea';
 import { Button } from './ui/button';
-import { ArrowLeft, CheckCircle2, Circle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, RotateCcw, HelpCircle, X, Lightbulb, ArrowRight } from 'lucide-react';
 import { getStepStatus } from '../lib/gitSteps';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 
 export function GitGuideLayout() {
-  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, clearSavedProgress, setSelectedCategory } = useStore();
+  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, clearSavedProgress, setSelectedCategory, showHelpGuide, helpGuideContent, hideHelp } = useStore();
   const navigate = useNavigate();
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   
+  // マウント時にカテゴリーを設定（レンダリング前に同期的に実行）
+  useLayoutEffect(() => {
+    // 常にgit-migrationを選択状態にする
+    setSelectedCategory('git-migration');
+  }, [setSelectedCategory]);
+
   // 保存された進捗があるかチェック
   useEffect(() => {
     const gitProgress = progress.find(p => p.category === 'git-migration');
@@ -19,6 +25,7 @@ export function GitGuideLayout() {
     if (hasSavedProgress) {
       setShowRestoreDialog(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const gitProgress = progress.find((p) => p.category === 'git-migration') || {
@@ -57,11 +64,11 @@ export function GitGuideLayout() {
   };
   
   const handleStartFresh = () => {
-    clearSavedProgress();
+    // リセット処理（selectedCategoryは維持）
     resetChat();
     setGitMigrationPhase({ phase: 'preparation' });
     updateProgress('git-migration', 0, 'Lv0');
-    setSelectedCategory('git-migration'); // カテゴリーを再設定
+    setSelectedCategory('git-migration'); // カテゴリーを確実に設定
     setShowRestoreDialog(false);
   };
 
@@ -244,6 +251,107 @@ export function GitGuideLayout() {
         {/* チャットエリア */}
         <ChatArea />
       </div>
+
+      {/* 右側ヘルプパネル */}
+      {showHelpGuide && helpGuideContent && (
+        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0 animate-fade-in">
+          <div className="p-6">
+            {/* ヘッダー */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
+                  <HelpCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">操作ガイド</h3>
+                  <p className="text-sm text-gray-500">困ったときのヘルプ</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={hideHelp}
+                className="w-10 h-10 p-0 rounded-full hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </Button>
+            </div>
+
+            {/* ガイド内容 */}
+            <div className="space-y-6">
+              {/* タイトルと説明 */}
+              <div className="p-5 bg-amber-50 rounded-xl border-2 border-amber-200">
+                <div className="flex items-start gap-3 mb-3">
+                  <Lightbulb className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-900 mb-2">
+                      {helpGuideContent.title}
+                    </h4>
+                    <p className="text-base text-gray-700 leading-relaxed">
+                      {helpGuideContent.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 手順 */}
+              {helpGuideContent.steps && helpGuideContent.steps.length > 0 && (
+                <div>
+                  <h5 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-teal-500 text-white text-sm flex items-center justify-center">
+                      📝
+                    </span>
+                    操作手順
+                  </h5>
+                  <div className="space-y-3">
+                    {helpGuideContent.steps.map((step, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200"
+                      >
+                        <span className="w-8 h-8 rounded-full bg-teal-500 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <p className="text-base text-gray-700 pt-1">{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ヒント */}
+              {helpGuideContent.tips && helpGuideContent.tips.length > 0 && (
+                <div>
+                  <h5 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center">
+                      💡
+                    </span>
+                    ヒント
+                  </h5>
+                  <div className="space-y-2">
+                    {helpGuideContent.tips.map((tip, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
+                      >
+                        <ArrowRight className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-base text-gray-700">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 閉じるボタン */}
+              <Button
+                onClick={hideHelp}
+                className="w-full h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl"
+              >
+                ガイドを閉じる
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

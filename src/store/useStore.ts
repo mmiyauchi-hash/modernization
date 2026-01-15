@@ -5,6 +5,15 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { ModernizationCategory, ProgressStatus, ChatMessage, GitMigrationPhase, LocalRule, SystemProgress, CategoryInfo } from '../types';
 
 
+// ヘルプガイドの型
+interface HelpGuide {
+  title: string;
+  description: string;
+  steps?: string[];
+  tips?: string[];
+  image?: string;
+}
+
 interface AppState {
   // 現在選択中のカテゴリー
   selectedCategory: ModernizationCategory | null;
@@ -30,6 +39,10 @@ interface AppState {
   // 全システムの進捗（集計用）
   allSystemsProgress: SystemProgress[];
   
+  // ヘルプガイド表示状態
+  showHelpGuide: boolean;
+  helpGuideContent: HelpGuide | null;
+  
   // アクション
   setSelectedCategory: (category: ModernizationCategory | null) => void;
   setCategories: (categories: CategoryInfo[]) => void;
@@ -43,7 +56,9 @@ interface AppState {
   updateLocalRules: (rules: LocalRule[]) => void;
   addSystemProgress: (system: SystemProgress) => void;
   resetChat: () => void;
-  clearSavedProgress: () => void; // 保存された進捗をクリア
+  clearSavedProgress: () => void;
+  showHelp: (guide: HelpGuide) => void;
+  hideHelp: () => void;
 }
 
 // Dateオブジェクトを文字列に変換するカスタムシリアライザー
@@ -104,6 +119,9 @@ export const useStore = create<AppState>()(
       ],
       
       allSystemsProgress: [],
+      
+      showHelpGuide: false,
+      helpGuideContent: null,
       
       setSelectedCategory: (category) => set({ selectedCategory: category }),
       
@@ -190,6 +208,9 @@ export const useStore = create<AppState>()(
           currentStepId: null,
         });
       },
+      
+      showHelp: (guide) => set({ showHelpGuide: true, helpGuideContent: guide }),
+      hideHelp: () => set({ showHelpGuide: false, helpGuideContent: null }),
     }),
     {
       name: 'devops-modernization-progress', // localStorageのキー名

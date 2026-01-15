@@ -6,6 +6,73 @@ import { Send, Bot, Info, AlertCircle, CheckCircle2, Lightbulb, ArrowRight, Eye,
 import { gitMigrationScenario, getNextStep } from '../lib/gitScenario';
 import { cn } from '../lib/utils';
 
+// ステップごとのヘルプガイド定義
+const stepHelpGuides: Record<string, { title: string; description: string; steps?: string[]; tips?: string[] }> = {
+  'welcome': {
+    title: '準備を始める',
+    description: 'SubversionからGitへの移行を開始します。',
+    steps: [
+      '「準備を始める」ボタンをクリックしてください',
+    ],
+    tips: [
+      'ボタンをクリックすると次のステップに進みます',
+    ],
+  },
+  'svn-repo-check': {
+    title: 'SubversionリポジトリURLの確認',
+    description: '現在使用しているSubversionリポジトリのURLを入力してください。',
+    steps: [
+      'TortoiseSVNを開く',
+      'リポジトリブラウザを選択',
+      'URLバーからURLをコピー',
+      'このチャットに貼り付けて送信',
+    ],
+    tips: [
+      'URLは通常 svn:// または https:// で始まります',
+      'わからない場合はシステム管理者に確認してください',
+    ],
+  },
+  'admin-id': {
+    title: '管理者IDの入力',
+    description: 'Gitリポジトリの管理者となるユーザーIDを入力します。',
+    steps: [
+      '社員IDまたはユーザー名を確認',
+      '半角英数字とハイフンのみ使用可能',
+      'テキストボックスに入力して送信',
+    ],
+    tips: [
+      '例: tanaka-taro, admin, dev-team-lead',
+      '通常は社員IDを使用します',
+    ],
+  },
+  'system-name': {
+    title: 'システム名の入力',
+    description: '移行するシステムの名前を入力します。',
+    steps: [
+      'システムの正式名称を確認',
+      '半角英数字とハイフンで入力',
+      'テキストボックスに入力して送信',
+    ],
+    tips: [
+      '例: inventory-system, sales-portal',
+      'スペースは使用できません。ハイフン(-)を使用してください',
+    ],
+  },
+  'environment-selection': {
+    title: '環境方式の選択',
+    description: 'Gitのホスティング環境を選択します。',
+    steps: [
+      'SaaS版（GitHub）またはセルフホスト版（GitLab）を選択',
+      '該当するボタンをクリック',
+    ],
+    tips: [
+      'SaaS版: インターネット経由でGitHubを使用',
+      'セルフホスト版: 社内サーバーでGitLabを運用',
+      '迷ったら管理者に確認してください',
+    ],
+  },
+};
+
 export function ChatArea() {
   const {
     selectedCategory,
@@ -17,6 +84,7 @@ export function ChatArea() {
     updateProgress,
     currentStepId: savedCurrentStepId,
     setCurrentStepId,
+    showHelp,
   } = useStore();
   
   const [inputValue, setInputValue] = useState('');
@@ -115,6 +183,42 @@ export function ChatArea() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // ヘルプが必要かどうかを判定
+  const isHelpNeeded = (input: string): boolean => {
+    const helpKeywords = [
+      'わからない', 'わかりません', '分からない', '分かりません',
+      'どこ', 'どうすれば', 'どうしたら', 'どうやって',
+      'ヘルプ', 'help', '教えて', '助けて',
+      '確認方法', '見方', '場所', 'どれ',
+      '意味', '何を', 'なにを', '何が', 'なにが',
+    ];
+    const lowerInput = input.toLowerCase();
+    return helpKeywords.some(keyword => lowerInput.includes(keyword));
+  };
+
+  // 現在のステップに対応するヘルプガイドを表示
+  const showContextualHelp = () => {
+    const helpGuide = currentStepId ? stepHelpGuides[currentStepId] : null;
+    if (helpGuide) {
+      showHelp(helpGuide);
+    } else {
+      // デフォルトのヘルプ
+      showHelp({
+        title: '操作ガイド',
+        description: '現在のステップを進めるためのヘルプです。',
+        steps: [
+          'チャットの指示に従って操作してください',
+          '選択肢がある場合はボタンをクリック',
+          'テキスト入力が必要な場合は入力欄に入力して送信',
+        ],
+        tips: [
+          '左側のメニューで進捗を確認できます',
+          'わからないことがあれば質問してください',
+        ],
+      });
+    }
+  };
+
   const handleSend = () => {
     if (!inputValue.trim() || !selectedCategory) return;
 
@@ -122,6 +226,18 @@ export function ChatArea() {
       role: 'user',
       content: inputValue,
     });
+
+    // ヘルプが必要かどうかをチェック
+    if (isHelpNeeded(inputValue)) {
+      showContextualHelp();
+      // ヘルプを求めている場合は、通常の応答も追加
+      addChatMessage({
+        role: 'assistant',
+        content: '右側にガイドを表示しました。詳しい手順を確認してください。\n\n引き続き、上記の質問にお答えください。',
+      });
+      setInputValue('');
+      return;
+    }
 
     const isGitMigration = selectedCategory === 'git-migration';
     if (isGitMigration) {
