@@ -139,63 +139,116 @@ const initialStructure = createInitialStructure();
 
 type AdminViewMode = 'business-rules' | 'menu-management' | 'dashboard';
 
-// プロジェクト進捗モックデータ
+// コース定義
+const courseDefinitions = [
+  { id: 'git-migration', name: 'Git切り替え', icon: '🔄' },
+  { id: 'ci-cd', name: 'CI/CD', icon: '🚀' },
+  { id: 'unit-test', name: 'ユニットテスト', icon: '🧪' },
+  { id: 'e2e-test', name: 'E2Eテスト', icon: '🎯' },
+  { id: 'monitoring', name: '運用監視', icon: '📊' },
+];
+
+// プロジェクト進捗モックデータ（コース別進捗を含む）
 const mockProjects = [
   { 
     id: 'proj-1',
     name: '基幹システムA', 
-    progress: 100, 
-    status: 'completed' as const,
     team: '情報システム部',
     startDate: '2025-10-01',
-    endDate: '2025-12-15'
+    endDate: '2025-12-15',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 100,
+      'unit-test': 100,
+      'e2e-test': 100,
+      'monitoring': 100,
+    }
   },
   { 
     id: 'proj-2',
     name: '顧客管理システム', 
-    progress: 75, 
-    status: 'in_progress' as const,
     team: '営業支援部',
     startDate: '2025-11-01',
-    endDate: '2026-02-28'
+    endDate: '2026-02-28',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 85,
+      'unit-test': 70,
+      'e2e-test': 50,
+      'monitoring': 20,
+    }
   },
   { 
     id: 'proj-3',
     name: '社内ポータル', 
-    progress: 45, 
-    status: 'in_progress' as const,
     team: '総務部',
     startDate: '2025-12-01',
-    endDate: '2026-03-31'
+    endDate: '2026-03-31',
+    courses: {
+      'git-migration': 100,
+      'ci-cd': 60,
+      'unit-test': 40,
+      'e2e-test': 15,
+      'monitoring': 0,
+    }
   },
   { 
     id: 'proj-4',
     name: '在庫管理システム', 
-    progress: 30, 
-    status: 'in_progress' as const,
     team: '物流部',
     startDate: '2026-01-05',
-    endDate: '2026-04-30'
+    endDate: '2026-04-30',
+    courses: {
+      'git-migration': 80,
+      'ci-cd': 30,
+      'unit-test': 20,
+      'e2e-test': 10,
+      'monitoring': 0,
+    }
   },
   { 
     id: 'proj-5',
     name: '経費精算システム', 
-    progress: 10, 
-    status: 'started' as const,
     team: '経理部',
     startDate: '2026-01-10',
-    endDate: '2026-05-31'
+    endDate: '2026-05-31',
+    courses: {
+      'git-migration': 50,
+      'ci-cd': 0,
+      'unit-test': 0,
+      'e2e-test': 0,
+      'monitoring': 0,
+    }
   },
   { 
     id: 'proj-6',
     name: '人事評価システム', 
-    progress: 0, 
-    status: 'not_started' as const,
     team: '人事部',
     startDate: '2026-02-01',
-    endDate: '2026-06-30'
+    endDate: '2026-06-30',
+    courses: {
+      'git-migration': 0,
+      'ci-cd': 0,
+      'unit-test': 0,
+      'e2e-test': 0,
+      'monitoring': 0,
+    }
   },
 ];
+
+// プロジェクトの全体進捗を計算
+const calculateOverallProgress = (courses: Record<string, number>): number => {
+  const values = Object.values(courses);
+  return Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
+};
+
+// ステータスを進捗率から判定
+const getStatusFromProgress = (progress: number): 'completed' | 'in_progress' | 'started' | 'not_started' => {
+  if (progress === 100) return 'completed';
+  if (progress >= 30) return 'in_progress';
+  if (progress > 0) return 'started';
+  return 'not_started';
+};
 
 // ステータスに応じた色とラベルを返す
 const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_started') => {
@@ -230,6 +283,19 @@ export function AdminPanel() {
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [naturalLanguageChat, setNaturalLanguageChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [editingCategory, setEditingCategory] = useState<CategoryInfo | null>(null);
+  
+  // ダッシュボード用の状態（展開中のプロジェクト）
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  
+  const toggleProject = (projectId: string) => {
+    const newExpanded = new Set(expandedProjects);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
+    } else {
+      newExpanded.add(projectId);
+    }
+    setExpandedProjects(newExpanded);
+  };
 
   const toggleDir = (dirId: string) => {
     const newExpanded = new Set(expandedDirs);
@@ -822,7 +888,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-green-700">完了</p>
                       <p className="text-3xl font-bold text-green-800">
-                        {mockProjects.filter(p => p.status === 'completed').length}
+                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'completed').length}
                       </p>
                     </div>
                   </div>
@@ -835,7 +901,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-blue-700">進行中</p>
                       <p className="text-3xl font-bold text-blue-800">
-                        {mockProjects.filter(p => p.status === 'in_progress').length}
+                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'in_progress').length}
                       </p>
                     </div>
                   </div>
@@ -848,7 +914,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-amber-700">着手</p>
                       <p className="text-3xl font-bold text-amber-800">
-                        {mockProjects.filter(p => p.status === 'started').length}
+                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'started').length}
                       </p>
                     </div>
                   </div>
@@ -861,7 +927,7 @@ export function AdminPanel() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">未着手</p>
                       <p className="text-3xl font-bold text-gray-700">
-                        {mockProjects.filter(p => p.status === 'not_started').length}
+                        {mockProjects.filter(p => getStatusFromProgress(calculateOverallProgress(p.courses)) === 'not_started').length}
                       </p>
                     </div>
                   </div>
@@ -877,75 +943,152 @@ export function AdminPanel() {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">プロジェクト進捗サマリー</h3>
-                      <p className="text-base text-gray-600">Git移行プロジェクト全体の進捗状況</p>
+                      <p className="text-base text-gray-600">プロジェクトをクリックするとコース別の進捗を確認できます</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-500">全体平均進捗</p>
                     <p className="text-3xl font-bold text-teal-600">
-                      {Math.round(mockProjects.reduce((acc, p) => acc + p.progress, 0) / mockProjects.length)}%
+                      {Math.round(mockProjects.reduce((acc, p) => acc + calculateOverallProgress(p.courses), 0) / mockProjects.length)}%
                     </p>
                   </div>
                 </div>
 
                 {/* プロジェクト一覧（棒グラフ） */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {mockProjects.map((project) => {
-                    const statusConfig = getStatusConfig(project.status);
+                    const overallProgress = calculateOverallProgress(project.courses);
+                    const status = getStatusFromProgress(overallProgress);
+                    const statusConfig = getStatusConfig(status);
                     const StatusIcon = statusConfig.icon;
+                    const isExpanded = expandedProjects.has(project.id);
                     
                     return (
-                      <div key={project.id} className={cn(
-                        'p-4 rounded-xl border-2 transition-all hover:shadow-md',
-                        statusConfig.bgLight,
-                        'border-gray-200'
-                      )}>
-                        <div className="flex items-center gap-4">
-                          {/* プロジェクト情報 */}
-                          <div className="w-48 flex-shrink-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <StatusIcon className={cn('w-4 h-4', statusConfig.text)} />
-                              <span className={cn(
-                                'text-xs font-bold px-2 py-0.5 rounded-full',
-                                statusConfig.color, 'text-white'
-                              )}>
-                                {statusConfig.label}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-gray-900 text-base">{project.name}</h4>
-                            <p className="text-sm text-gray-500">{project.team}</p>
-                          </div>
-                          
-                          {/* 棒グラフ */}
-                          <div className="flex-1">
-                            <div className="h-8 bg-gray-200 rounded-full overflow-hidden relative">
-                              <div 
-                                className={cn(
-                                  'h-full rounded-full transition-all duration-500 flex items-center justify-end pr-3',
-                                  statusConfig.color
-                                )}
-                                style={{ width: `${Math.max(project.progress, 5)}%` }}
-                              >
-                                {project.progress >= 20 && (
-                                  <span className="text-white font-bold text-sm">{project.progress}%</span>
-                                )}
-                              </div>
-                              {project.progress < 20 && (
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm">
-                                  {project.progress}%
-                                </span>
+                      <div key={project.id} className="overflow-hidden rounded-xl border-2 border-gray-200 transition-all">
+                        {/* メインの行（クリックで展開） */}
+                        <div 
+                          className={cn(
+                            'p-4 cursor-pointer transition-all hover:bg-gray-50',
+                            statusConfig.bgLight,
+                            isExpanded && 'border-b-2 border-gray-200'
+                          )}
+                          onClick={() => toggleProject(project.id)}
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* 展開アイコン */}
+                            <div className="w-8 flex-shrink-0">
+                              {isExpanded ? (
+                                <ChevronDown className="w-6 h-6 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="w-6 h-6 text-gray-500" />
                               )}
                             </div>
-                          </div>
-                          
-                          {/* 期間 */}
-                          <div className="w-40 text-right flex-shrink-0">
-                            <p className="text-xs text-gray-500">期間</p>
-                            <p className="text-sm text-gray-700 font-medium">
-                              {project.startDate.slice(5)} 〜 {project.endDate.slice(5)}
-                            </p>
+                            
+                            {/* プロジェクト情報 */}
+                            <div className="w-44 flex-shrink-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <StatusIcon className={cn('w-4 h-4', statusConfig.text)} />
+                                <span className={cn(
+                                  'text-xs font-bold px-2 py-0.5 rounded-full',
+                                  statusConfig.color, 'text-white'
+                                )}>
+                                  {statusConfig.label}
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-gray-900 text-base">{project.name}</h4>
+                              <p className="text-sm text-gray-500">{project.team}</p>
+                            </div>
+                            
+                            {/* 棒グラフ */}
+                            <div className="flex-1">
+                              <div className="h-8 bg-gray-200 rounded-full overflow-hidden relative">
+                                <div 
+                                  className={cn(
+                                    'h-full rounded-full transition-all duration-500 flex items-center justify-end pr-3',
+                                    statusConfig.color
+                                  )}
+                                  style={{ width: `${Math.max(overallProgress, 5)}%` }}
+                                >
+                                  {overallProgress >= 20 && (
+                                    <span className="text-white font-bold text-sm">{overallProgress}%</span>
+                                  )}
+                                </div>
+                                {overallProgress < 20 && (
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm">
+                                    {overallProgress}%
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* 期間 */}
+                            <div className="w-40 text-right flex-shrink-0">
+                              <p className="text-xs text-gray-500">期間</p>
+                              <p className="text-sm text-gray-700 font-medium">
+                                {project.startDate.slice(5)} 〜 {project.endDate.slice(5)}
+                              </p>
+                            </div>
                           </div>
                         </div>
+                        
+                        {/* 展開時：コース別進捗 */}
+                        {isExpanded && (
+                          <div className="p-4 bg-white">
+                            <div className="mb-3">
+                              <h5 className="text-sm font-bold text-gray-600 mb-1">コース別進捗状況</h5>
+                              <p className="text-xs text-gray-500">各コースの進捗率から全体進捗が計算されます</p>
+                            </div>
+                            <div className="space-y-3">
+                              {courseDefinitions.map((course) => {
+                                const courseProgress = project.courses[course.id as keyof typeof project.courses];
+                                const courseStatus = getStatusFromProgress(courseProgress);
+                                const courseStatusConfig = getStatusConfig(courseStatus);
+                                
+                                return (
+                                  <div key={course.id} className="flex items-center gap-3">
+                                    {/* コース名 */}
+                                    <div className="w-36 flex-shrink-0 flex items-center gap-2">
+                                      <span className="text-lg">{course.icon}</span>
+                                      <span className="text-sm font-medium text-gray-700">{course.name}</span>
+                                    </div>
+                                    
+                                    {/* 進捗バー */}
+                                    <div className="flex-1">
+                                      <div className="h-5 bg-gray-100 rounded-full overflow-hidden relative">
+                                        <div 
+                                          className={cn(
+                                            'h-full rounded-full transition-all duration-300',
+                                            courseStatusConfig.color
+                                          )}
+                                          style={{ width: `${Math.max(courseProgress, 2)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    {/* パーセント */}
+                                    <div className="w-16 text-right flex-shrink-0">
+                                      <span className={cn(
+                                        'text-sm font-bold',
+                                        courseProgress === 100 ? 'text-green-600' : 
+                                        courseProgress > 0 ? 'text-blue-600' : 'text-gray-400'
+                                      )}>
+                                        {courseProgress}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            {/* 計算式の説明 */}
+                            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <p className="text-xs text-gray-600">
+                                <span className="font-bold">全体進捗の計算:</span>{' '}
+                                ({Object.values(project.courses).join(' + ')}) ÷ {Object.values(project.courses).length} = {overallProgress}%
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
