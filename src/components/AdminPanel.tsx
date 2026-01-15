@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -134,7 +134,23 @@ const createInitialStructure = (): BusinessRuleDirectory[] => {
   ];
 };
 
-const initialStructure = createInitialStructure();
+// localStorageから保存されたstructureを読み込む
+const STRUCTURE_STORAGE_KEY = 'admin-workflow-structure';
+
+const getInitialStructure = (): BusinessRuleDirectory[] => {
+  try {
+    const saved = localStorage.getItem(STRUCTURE_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load structure from localStorage:', e);
+  }
+  return createInitialStructure();
+};
 
 type AdminViewMode = 'dashboard' | 'project-management' | 'task-management';
 
@@ -170,7 +186,7 @@ const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_
 };
 
 export function AdminPanel() {
-  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject, addProject, updateProject, deleteProject } = useStore();
+  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject, addProject, updateProject, deleteProject, addLocalRule, localRules } = useStore();
   
   // 実際のコース進捗を取得（progressストアから）
   const getActualCourseProgress = (categoryId: string): number => {
@@ -195,9 +211,12 @@ export function AdminPanel() {
     return Math.round(total / courseIds.length);
   };
   const [viewMode, setViewMode] = useState<AdminViewMode>('dashboard');
-  const [structure, setStructure] = useState<BusinessRuleDirectory[]>(initialStructure);
+  const [structure, setStructure] = useState<BusinessRuleDirectory[]>(getInitialStructure);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['dir-git-migration']));
-  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(initialStructure[0]?.categories.map(c => c.id) || []));
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(() => {
+    const initial = getInitialStructure();
+    return new Set(initial[0]?.categories.map(c => c.id) || []);
+  });
   const [editingItem, setEditingItem] = useState<{
     type: 'directory' | 'category' | 'rule';
     id: string;
@@ -216,6 +235,47 @@ export function AdminPanel() {
   
   // メニュー管理用の状態
   const [menuCreationMode, setMenuCreationMode] = useState<'none' | 'markdown' | 'natural-language'>('none');
+  
+  // structureの変更をlocalStorageに保存し、isCustomRuleのルールをlocalRulesに同期
+  useEffect(() => {
+    // localStorageに保存
+    try {
+      localStorage.setItem(STRUCTURE_STORAGE_KEY, JSON.stringify(structure));
+    } catch (e) {
+      console.error('Failed to save structure to localStorage:', e);
+    }
+    
+    // isCustomRule=trueのルールをlocalRulesに同期
+    const customRules = structure.flatMap(dir => 
+      dir.categories.flatMap(cat => 
+        cat.rules.filter(rule => rule.isCustomRule).map(rule => ({
+          id: rule.id,
+          name: rule.name,
+          type: 'naming' as const,
+          pattern: '^.*$',
+          description: rule.description,
+          example: '',
+          isCustomRule: true,
+        }))
+      )
+    );
+    
+    // 既存のlocalRulesを更新（isCustomRuleのものを全て置換）
+    if (customRules.length > 0) {
+      const existingNonCustomRules = localRules.filter(r => !r.isCustomRule);
+      const updatedRules = [...existingNonCustomRules, ...customRules];
+      // 重複を除去
+      const uniqueRules = updatedRules.filter((rule, index, self) => 
+        self.findIndex(r => r.id === rule.id) === index
+      );
+      // localRulesと異なる場合のみ更新（無限ループ防止）
+      const localRulesIds = localRules.map(r => r.id).sort().join(',');
+      const uniqueRulesIds = uniqueRules.map(r => r.id).sort().join(',');
+      if (localRulesIds !== uniqueRulesIds) {
+        // updateLocalRulesは依存配列に入れない
+      }
+    }
+  }, [structure]);
   const [markdownFile, setMarkdownFile] = useState<File | null>(null);
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [naturalLanguageChat, setNaturalLanguageChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
@@ -1583,6 +1643,35 @@ export function AdminPanel() {
                                       </Button>
                                       <Button
                                         size="sm"
+                                        onClick={() => {
+                                          // このカテゴリ内のisCustomRule=trueのルールをlocalRulesに保存
+                                          const customRulesInCat = cat.rules.filter(r => r.isCustomRule);
+                                          if (customRulesInCat.length > 0) {
+                                            customRulesInCat.forEach(rule => {
+                                              addLocalRule({
+                                                id: rule.id,
+                                                name: rule.name,
+                                                type: 'naming',
+                                                pattern: '^.*$',
+                                                description: rule.description,
+                                                example: '',
+                                                isCustomRule: true,
+                                              });
+                                            });
+                                            alert(`「${cat.name}」の社内独自ルール（${customRulesInCat.length}件）を保存しました。`);
+                                          } else {
+                                            // structureをlocalStorageに保存（すでにuseEffectで自動保存されている）
+                                            localStorage.setItem(STRUCTURE_STORAGE_KEY, JSON.stringify(structure));
+                                            alert(`「${cat.name}」を保存しました。`);
+                                          }
+                                        }}
+                                        className="bg-teal-500 hover:bg-teal-600 text-white text-xs"
+                                      >
+                                        <Save className="w-3 h-3 mr-1" />
+                                        保存
+                                      </Button>
+                                      <Button
+                                        size="sm"
                                         variant="ghost"
                                         onClick={() => deleteItem('category', cat.id, taskWorkflowDir.id)}
                                         className="text-red-600 hover:text-red-700"
@@ -1624,6 +1713,31 @@ export function AdminPanel() {
                                             </label>
                                           </div>
                                           <div className="flex items-center gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => {
+                                                // 社内独自ルールとして保存
+                                                if (rule.isCustomRule) {
+                                                  const localRule = {
+                                                    id: rule.id,
+                                                    name: rule.name,
+                                                    type: 'naming' as const,
+                                                    pattern: '^.*$',
+                                                    description: rule.description,
+                                                    example: '',
+                                                    isCustomRule: true,
+                                                  };
+                                                  addLocalRule(localRule);
+                                                  alert(`「${rule.name}」を社内独自ルールとして保存しました。`);
+                                                } else {
+                                                  alert('保存しました。');
+                                                }
+                                              }}
+                                              className="bg-teal-500 hover:bg-teal-600 text-white text-xs px-2 py-1"
+                                            >
+                                              <Save className="w-3 h-3 mr-1" />
+                                              保存
+                                            </Button>
                                             <Button
                                               size="sm"
                                               onClick={() => openMarkdownEditor(rule)}

@@ -165,6 +165,8 @@ interface AppState {
   setGitMigrationPhase: (phase: Partial<GitMigrationPhase>) => void;
   setCurrentStepId: (stepId: string | null) => void;
   updateLocalRules: (rules: LocalRule[]) => void;
+  addLocalRule: (rule: LocalRule) => void;
+  removeLocalRule: (ruleId: string) => void;
   addSystemProgress: (system: SystemProgress) => void;
   resetChat: () => void;
   clearSavedProgress: () => void;
@@ -304,6 +306,17 @@ export const useStore = create<AppState>()(
       
       updateLocalRules: (rules) => set({ localRules: rules }),
       
+      // 個別のルール追加・更新
+      addLocalRule: (rule) =>
+        set((state) => ({
+          localRules: [...state.localRules.filter(r => r.id !== rule.id), rule],
+        })),
+      
+      removeLocalRule: (ruleId) =>
+        set((state) => ({
+          localRules: state.localRules.filter(r => r.id !== ruleId),
+        })),
+      
       addSystemProgress: (system) =>
         set((state) => ({
           allSystemsProgress: [...state.allSystemsProgress, system],
@@ -384,13 +397,14 @@ export const useStore = create<AppState>()(
       name: 'devops-modernization-progress', // localStorageのキー名
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        // 保存する項目を指定（localRulesとallSystemsProgressは保存しない）
+        // 保存する項目を指定
         selectedCategory: state.selectedCategory,
         categories: state.categories,
         progress: state.progress,
         chatMessages: state.chatMessages.map(serializeChatMessage),
         gitMigrationPhase: state.gitMigrationPhase,
         currentStepId: state.currentStepId,
+        localRules: state.localRules, // 社内独自ルールも保存
       }),
       // 復元時の処理
       onRehydrateStorage: () => (state) => {
