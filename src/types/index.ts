@@ -29,6 +29,9 @@ export type ChatMessage = {
   timestamp: Date;
   options?: string[]; // 選択肢がある場合
   isCustomRule?: boolean; // 社内独自ルールフラグ
+  stepId?: string; // メッセージが送信された時点のステップID
+  phase?: GitMigrationPhase['phase']; // メッセージが送信された時点のフェーズ
+  phaseData?: Partial<GitMigrationPhase>; // メッセージが送信された時点のフェーズデータ
   errorGuide?: {
     // エラーガイド情報
     title: string;

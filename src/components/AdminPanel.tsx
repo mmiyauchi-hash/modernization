@@ -16,7 +16,12 @@ import {
   MessageSquare,
   Menu,
   X,
-  Save
+  Save,
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import { BusinessRuleDirectory, BusinessRuleCategory, BusinessRule } from '../types/businessRules';
 import { gitMigrationScenario } from '../lib/gitScenario';
@@ -132,11 +137,83 @@ const createInitialStructure = (): BusinessRuleDirectory[] => {
 
 const initialStructure = createInitialStructure();
 
-type AdminViewMode = 'business-rules' | 'menu-management';
+type AdminViewMode = 'business-rules' | 'menu-management' | 'dashboard';
+
+// プロジェクト進捗モックデータ
+const mockProjects = [
+  { 
+    id: 'proj-1',
+    name: '基幹システムA', 
+    progress: 100, 
+    status: 'completed' as const,
+    team: '情報システム部',
+    startDate: '2025-10-01',
+    endDate: '2025-12-15'
+  },
+  { 
+    id: 'proj-2',
+    name: '顧客管理システム', 
+    progress: 75, 
+    status: 'in_progress' as const,
+    team: '営業支援部',
+    startDate: '2025-11-01',
+    endDate: '2026-02-28'
+  },
+  { 
+    id: 'proj-3',
+    name: '社内ポータル', 
+    progress: 45, 
+    status: 'in_progress' as const,
+    team: '総務部',
+    startDate: '2025-12-01',
+    endDate: '2026-03-31'
+  },
+  { 
+    id: 'proj-4',
+    name: '在庫管理システム', 
+    progress: 30, 
+    status: 'in_progress' as const,
+    team: '物流部',
+    startDate: '2026-01-05',
+    endDate: '2026-04-30'
+  },
+  { 
+    id: 'proj-5',
+    name: '経費精算システム', 
+    progress: 10, 
+    status: 'started' as const,
+    team: '経理部',
+    startDate: '2026-01-10',
+    endDate: '2026-05-31'
+  },
+  { 
+    id: 'proj-6',
+    name: '人事評価システム', 
+    progress: 0, 
+    status: 'not_started' as const,
+    team: '人事部',
+    startDate: '2026-02-01',
+    endDate: '2026-06-30'
+  },
+];
+
+// ステータスに応じた色とラベルを返す
+const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_started') => {
+  switch (status) {
+    case 'completed':
+      return { color: 'bg-green-500', bgLight: 'bg-green-50', text: 'text-green-700', label: '完了', icon: CheckCircle2 };
+    case 'in_progress':
+      return { color: 'bg-blue-500', bgLight: 'bg-blue-50', text: 'text-blue-700', label: '進行中', icon: TrendingUp };
+    case 'started':
+      return { color: 'bg-amber-500', bgLight: 'bg-amber-50', text: 'text-amber-700', label: '着手', icon: Clock };
+    case 'not_started':
+      return { color: 'bg-gray-400', bgLight: 'bg-gray-50', text: 'text-gray-600', label: '未着手', icon: AlertCircle };
+  }
+};
 
 export function AdminPanel() {
   const { categories, addCategory, updateCategory, deleteCategory } = useStore();
-  const [viewMode, setViewMode] = useState<AdminViewMode>('business-rules');
+  const [viewMode, setViewMode] = useState<AdminViewMode>('dashboard');
   const [structure, setStructure] = useState<BusinessRuleDirectory[]>(initialStructure);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['dir-git-migration']));
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(initialStructure[0]?.categories.map(c => c.id) || []));
@@ -687,6 +764,19 @@ export function AdminPanel() {
           </div>
           <div className="flex gap-3">
             <Button
+              onClick={() => setViewMode('dashboard')}
+              variant={viewMode === 'dashboard' ? 'default' : 'outline'}
+              className={cn(
+                'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
+                viewMode === 'dashboard' 
+                  ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <BarChart3 className="w-5 h-5" />
+              進捗レポート
+            </Button>
+            <Button
               onClick={() => setViewMode('business-rules')}
               variant={viewMode === 'business-rules' ? 'default' : 'outline'}
               className={cn(
@@ -719,6 +809,190 @@ export function AdminPanel() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-4">
           
+          {/* ダッシュボードモード */}
+          {viewMode === 'dashboard' && (
+            <div className="space-y-6">
+              {/* サマリーカード */}
+              <div className="grid grid-cols-4 gap-4">
+                <Card className="p-5 bg-gradient-to-br from-green-50 to-green-100 border-green-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-700">完了</p>
+                      <p className="text-3xl font-bold text-green-800">
+                        {mockProjects.filter(p => p.status === 'completed').length}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">進行中</p>
+                      <p className="text-3xl font-bold text-blue-800">
+                        {mockProjects.filter(p => p.status === 'in_progress').length}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-700">着手</p>
+                      <p className="text-3xl font-bold text-amber-800">
+                        {mockProjects.filter(p => p.status === 'started').length}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">未着手</p>
+                      <p className="text-3xl font-bold text-gray-700">
+                        {mockProjects.filter(p => p.status === 'not_started').length}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* 全体進捗 */}
+              <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                      <BarChart3 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">プロジェクト進捗サマリー</h3>
+                      <p className="text-base text-gray-600">Git移行プロジェクト全体の進捗状況</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">全体平均進捗</p>
+                    <p className="text-3xl font-bold text-teal-600">
+                      {Math.round(mockProjects.reduce((acc, p) => acc + p.progress, 0) / mockProjects.length)}%
+                    </p>
+                  </div>
+                </div>
+
+                {/* プロジェクト一覧（棒グラフ） */}
+                <div className="space-y-4">
+                  {mockProjects.map((project) => {
+                    const statusConfig = getStatusConfig(project.status);
+                    const StatusIcon = statusConfig.icon;
+                    
+                    return (
+                      <div key={project.id} className={cn(
+                        'p-4 rounded-xl border-2 transition-all hover:shadow-md',
+                        statusConfig.bgLight,
+                        'border-gray-200'
+                      )}>
+                        <div className="flex items-center gap-4">
+                          {/* プロジェクト情報 */}
+                          <div className="w-48 flex-shrink-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <StatusIcon className={cn('w-4 h-4', statusConfig.text)} />
+                              <span className={cn(
+                                'text-xs font-bold px-2 py-0.5 rounded-full',
+                                statusConfig.color, 'text-white'
+                              )}>
+                                {statusConfig.label}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-gray-900 text-base">{project.name}</h4>
+                            <p className="text-sm text-gray-500">{project.team}</p>
+                          </div>
+                          
+                          {/* 棒グラフ */}
+                          <div className="flex-1">
+                            <div className="h-8 bg-gray-200 rounded-full overflow-hidden relative">
+                              <div 
+                                className={cn(
+                                  'h-full rounded-full transition-all duration-500 flex items-center justify-end pr-3',
+                                  statusConfig.color
+                                )}
+                                style={{ width: `${Math.max(project.progress, 5)}%` }}
+                              >
+                                {project.progress >= 20 && (
+                                  <span className="text-white font-bold text-sm">{project.progress}%</span>
+                                )}
+                              </div>
+                              {project.progress < 20 && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm">
+                                  {project.progress}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* 期間 */}
+                          <div className="w-40 text-right flex-shrink-0">
+                            <p className="text-xs text-gray-500">期間</p>
+                            <p className="text-sm text-gray-700 font-medium">
+                              {project.startDate.slice(5)} 〜 {project.endDate.slice(5)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* フェーズ別進捗 */}
+              <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-violet-500 flex items-center justify-center shadow-sm">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">フェーズ別進捗状況</h3>
+                    <p className="text-base text-gray-600">各移行フェーズの完了状況</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { phase: '準備フェーズ', completed: 6, total: 6, color: 'bg-green-500' },
+                    { phase: '移行フェーズ', completed: 4, total: 6, color: 'bg-blue-500' },
+                    { phase: '検証フェーズ', completed: 2, total: 6, color: 'bg-amber-500' },
+                  ].map((item, index) => (
+                    <div key={index} className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-gray-800">{item.phase}</h4>
+                        <span className="text-sm font-medium text-gray-600">
+                          {item.completed}/{item.total} 完了
+                        </span>
+                      </div>
+                      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className={cn('h-full rounded-full', item.color)}
+                          style={{ width: `${(item.completed / item.total) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-right text-sm font-bold text-gray-700 mt-2">
+                        {Math.round((item.completed / item.total) * 100)}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* メニュー管理モード */}
           {viewMode === 'menu-management' && (
             <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">

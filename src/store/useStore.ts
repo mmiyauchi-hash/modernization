@@ -59,6 +59,7 @@ interface AppState {
   clearSavedProgress: () => void;
   showHelp: (guide: HelpGuide) => void;
   hideHelp: () => void;
+  goToMessage: (messageId: string) => void; // 指定したメッセージの時点に戻る
 }
 
 // Dateオブジェクトを文字列に変換するカスタムシリアライザー
@@ -211,6 +212,33 @@ export const useStore = create<AppState>()(
       
       showHelp: (guide) => set({ showHelpGuide: true, helpGuideContent: guide }),
       hideHelp: () => set({ showHelpGuide: false, helpGuideContent: null }),
+      
+      goToMessage: (messageId) => set((state) => {
+        // 指定されたメッセージのインデックスを見つける
+        const targetIndex = state.chatMessages.findIndex(m => m.id === messageId);
+        if (targetIndex === -1) return state;
+        
+        // 指定されたメッセージを取得
+        const targetMessage = state.chatMessages[targetIndex];
+        
+        // 指定されたメッセージまでのメッセージを保持（そのメッセージを含む）
+        const newMessages = state.chatMessages.slice(0, targetIndex + 1);
+        
+        // 該当メッセージに保存されているステップ情報を復元
+        const newStepId = targetMessage.stepId || state.currentStepId;
+        const newPhase = targetMessage.phase || state.gitMigrationPhase.phase;
+        const newPhaseData = targetMessage.phaseData || {};
+        
+        return {
+          chatMessages: newMessages,
+          currentStepId: newStepId,
+          gitMigrationPhase: {
+            ...state.gitMigrationPhase,
+            phase: newPhase,
+            ...newPhaseData,
+          },
+        };
+      }),
     }),
     {
       name: 'devops-modernization-progress', // localStorageのキー名

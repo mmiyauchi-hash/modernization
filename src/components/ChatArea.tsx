@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Send, Bot, Info, AlertCircle, CheckCircle2, Lightbulb, ArrowRight, Eye, Terminal } from 'lucide-react';
+import { Send, Bot, Info, AlertCircle, CheckCircle2, Lightbulb, ArrowRight, Eye, Terminal, RotateCcw } from 'lucide-react';
 import { gitMigrationScenario, getNextStep } from '../lib/gitScenario';
 import { cn } from '../lib/utils';
 
@@ -85,10 +85,12 @@ export function ChatArea() {
     currentStepId: savedCurrentStepId,
     setCurrentStepId,
     showHelp,
+    goToMessage,
   } = useStore();
   
   const [inputValue, setInputValue] = useState('');
   const [currentStepId, setCurrentStepIdLocal] = useState<string | null>(savedCurrentStepId || null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isAddingMessageRef = useRef(false);
   
@@ -169,6 +171,9 @@ export function ChatArea() {
       content: firstStep.message,
       options: firstStep.options,
       checkGuide: firstStep.checkGuide,
+      stepId: firstStep.id,
+      phase: gitMigrationPhase.phase,
+      phaseData: { ...gitMigrationPhase },
     });
     updateCurrentStepId(firstStep.id);
     
@@ -225,6 +230,9 @@ export function ChatArea() {
     addChatMessage({
       role: 'user',
       content: inputValue,
+      stepId: currentStepId || undefined,
+      phase: gitMigrationPhase.phase,
+      phaseData: { ...gitMigrationPhase },
     });
 
     // ヘルプが必要かどうかをチェック
@@ -234,6 +242,9 @@ export function ChatArea() {
       addChatMessage({
         role: 'assistant',
         content: '右側にガイドを表示しました。詳しい手順を確認してください。\n\n引き続き、上記の質問にお答えください。',
+        stepId: currentStepId || undefined,
+        phase: gitMigrationPhase.phase,
+        phaseData: { ...gitMigrationPhase },
       });
       setInputValue('');
       return;
@@ -268,6 +279,9 @@ export function ChatArea() {
           content: validation.message || '入力が正しくありません。',
           isCustomRule: validation.isCustomRule || false,
           errorGuide: validation.guide,
+          stepId: currentStepId || undefined,
+          phase: gitMigrationPhase.phase,
+          phaseData: { ...gitMigrationPhase },
         });
         return;
       }
@@ -301,6 +315,9 @@ export function ChatArea() {
             content: nextStep.message,
             options: nextStep.options,
             checkGuide: nextStep.checkGuide,
+            stepId: nextStep.id,
+            phase: 'migration',
+            phaseData: { ...gitMigrationPhase, phase: 'migration' },
           });
           updateCurrentStepId(nextStep.id);
         }
@@ -313,6 +330,9 @@ export function ChatArea() {
             content: verificationStep.message,
             options: verificationStep.options,
             checkGuide: verificationStep.checkGuide,
+            stepId: verificationStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(verificationStep.id);
         }
@@ -329,6 +349,9 @@ export function ChatArea() {
             content: gitlabStep.message,
             options: gitlabStep.options,
             checkGuide: gitlabStep.checkGuide,
+            stepId: gitlabStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(gitlabStep.id);
         }
@@ -351,6 +374,9 @@ export function ChatArea() {
             content: sshKeyStep.message,
             options: sshKeyStep.options,
             checkGuide: sshKeyStep.checkGuide,
+            stepId: sshKeyStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(sshKeyStep.id);
         }
@@ -363,6 +389,9 @@ export function ChatArea() {
             content: tokenStep.message,
             options: tokenStep.options,
             checkGuide: tokenStep.checkGuide,
+            stepId: tokenStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(tokenStep.id);
         }
@@ -379,6 +408,9 @@ export function ChatArea() {
             content: tokenStep.message,
             options: tokenStep.options,
             checkGuide: tokenStep.checkGuide,
+            stepId: tokenStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(tokenStep.id);
         }
@@ -394,6 +426,9 @@ export function ChatArea() {
             content: sshKeyStep.message,
             options: sshKeyStep.options,
             checkGuide: sshKeyStep.checkGuide,
+            stepId: sshKeyStep.id,
+            phase: phase,
+            phaseData: { ...gitMigrationPhase },
           });
           updateCurrentStepId(sshKeyStep.id);
         }
@@ -420,12 +455,16 @@ export function ChatArea() {
       addChatMessage({
         role: 'assistant',
         content: '🎉 Git移行ガイドが完了しました！\n\n次のステップに進む準備ができました。',
+        stepId: currentStepId || undefined,
+        phase: phase,
+        phaseData: { ...gitMigrationPhase },
       });
       updateProgress('git-migration', 100, 'Lv1');
       return;
     }
 
     if (next.nextPhase) {
+      const newPhaseData = { ...gitMigrationPhase, phase: next.nextPhase as any };
       setGitMigrationPhase({ phase: next.nextPhase as any });
       isAddingMessageRef.current = false; // フェーズ変更時にリセット
       const nextScenario = gitMigrationScenario[next.nextPhase];
@@ -436,6 +475,9 @@ export function ChatArea() {
           content: nextStep.message,
           options: nextStep.options,
           checkGuide: nextStep.checkGuide,
+          stepId: nextStep.id,
+          phase: next.nextPhase as any,
+          phaseData: newPhaseData,
         });
         updateCurrentStepId(nextStep.id);
       }
@@ -447,6 +489,9 @@ export function ChatArea() {
           content: nextStep.message,
           options: nextStep.options,
           checkGuide: nextStep.checkGuide,
+          stepId: next.nextStepId,
+          phase: phase,
+          phaseData: { ...gitMigrationPhase },
         });
         updateCurrentStepId(next.nextStepId);
       }
@@ -459,6 +504,9 @@ export function ChatArea() {
     addChatMessage({
       role: 'user',
       content: option,
+      stepId: currentStepId || undefined,
+      phase: gitMigrationPhase.phase,
+      phaseData: { ...gitMigrationPhase },
     });
 
     const isGitMigration = selectedCategory === 'git-migration';
@@ -492,213 +540,235 @@ export function ChatArea() {
       {/* メッセージエリア */}
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-3xl mx-auto space-y-6">
-          {chatMessages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'animate-fade-in',
-                message.role === 'user' ? 'flex justify-end' : 'flex justify-start'
-              )}
-            >
-              {message.role === 'assistant' && (
-                <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 mr-4 shadow-sm">
-                  <Bot className="w-6 h-6 text-white" />
-                </div>
-              )}
+          {chatMessages.map((message, index) => {
+            const isLastMessage = index === chatMessages.length - 1;
+            const canGoBack = !isLastMessage && message.role === 'assistant' && message.stepId;
+            
+            return (
               <div
+                key={message.id}
                 className={cn(
-                  'max-w-2xl rounded-2xl',
-                  message.role === 'user'
-                    ? 'bg-teal-500 text-white px-6 py-4 shadow-sm'
-                    : message.isCustomRule
-                    ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 px-6 py-5 shadow-lg ring-2 ring-violet-200 ring-offset-2'
-                    : 'bg-white border border-gray-200 px-6 py-5 shadow-sm'
+                  'animate-fade-in relative group',
+                  message.role === 'user' ? 'flex justify-end' : 'flex justify-start'
                 )}
+                onMouseEnter={() => canGoBack && setHoveredMessageId(message.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
               >
-                {message.isCustomRule && (
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-bold shadow-md animate-pulse">
-                      <span className="text-lg">🏢</span>
-                      社内独自ルール
-                    </div>
-                    <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
+                {message.role === 'assistant' && (
+                  <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 mr-4 shadow-sm">
+                    <Bot className="w-6 h-6 text-white" />
                   </div>
                 )}
-                <div className={cn(
-                  'whitespace-pre-wrap text-base leading-relaxed',
-                  message.role === 'user' ? 'text-white' : 'text-gray-800'
-                )}>
-                  {message.content}
-                </div>
-                
-                {/* エラーガイド */}
-                {message.errorGuide && (
+                <div
+                  className={cn(
+                    'max-w-2xl rounded-2xl relative',
+                    message.role === 'user'
+                      ? 'bg-teal-500 text-white px-6 py-4 shadow-sm'
+                      : message.isCustomRule
+                      ? 'bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 px-6 py-5 shadow-lg ring-2 ring-violet-200 ring-offset-2'
+                      : 'bg-white border border-gray-200 px-6 py-5 shadow-sm',
+                    canGoBack && hoveredMessageId === message.id && 'ring-2 ring-amber-400 ring-offset-2'
+                  )}
+                >
+                  {/* この時点に戻るボタン */}
+                  {canGoBack && hoveredMessageId === message.id && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('この時点に戻りますか？\n以降のチャット履歴は削除されます。')) {
+                          goToMessage(message.id);
+                        }
+                      }}
+                      className="absolute -top-3 -right-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-all z-10"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      この時点に戻る
+                    </button>
+                  )}
+                    {message.isCustomRule && (
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-sm font-bold shadow-md animate-pulse">
+                        <span className="text-lg">🏢</span>
+                        社内独自ルール
+                      </div>
+                      <span className="text-xs text-violet-600 font-medium">※ 当社固有の規則です</span>
+                    </div>
+                  )}
                   <div className={cn(
-                    'mt-5 p-5 rounded-xl border-2 animate-fade-in',
-                    message.isCustomRule
-                      ? 'bg-violet-50 border-violet-300 shadow-md'
-                      : 'bg-blue-50 border-blue-300'
+                    'whitespace-pre-wrap text-base leading-relaxed',
+                    message.role === 'user' ? 'text-white' : 'text-gray-800'
                   )}>
-                    <div className="flex items-start gap-4">
-                      <div className={cn(
-                        'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-                        message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md' : 'bg-blue-500'
-                      )}>
-                        <Lightbulb className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className={cn(
-                          'font-bold text-lg mb-3',
-                          message.isCustomRule ? 'text-violet-900' : 'text-blue-900'
+                    {message.content}
+                  </div>
+                  
+                  {/* エラーガイド */}
+                  {message.errorGuide && (
+                    <div className={cn(
+                      'mt-5 p-5 rounded-xl border-2 animate-fade-in',
+                      message.isCustomRule
+                        ? 'bg-violet-50 border-violet-300 shadow-md'
+                        : 'bg-blue-50 border-blue-300'
+                    )}>
+                      <div className="flex items-start gap-4">
+                        <div className={cn(
+                          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+                          message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md' : 'bg-blue-500'
                         )}>
-                          {message.errorGuide.title}
-                        </h4>
-                        
-                        {message.errorGuide.steps && message.errorGuide.steps.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm font-bold text-gray-700 mb-2">修正手順:</p>
-                            <ol className="space-y-2">
-                              {message.errorGuide.steps.map((step, index) => (
-                                <li key={index} className="flex items-start gap-3 text-base text-gray-700">
-                                  <span className={cn(
-                                    'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white',
-                                    message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500' : 'bg-blue-500'
-                                  )}>
-                                    {index + 1}
-                                  </span>
-                                  <span className="flex-1 pt-0.5">{step}</span>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                        )}
-                        
-                        {message.errorGuide.examples && message.errorGuide.examples.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm font-bold text-gray-700 mb-2">正しい例:</p>
-                            <div className="space-y-2">
-                              {message.errorGuide.examples.map((example, index) => (
-                                <div
-                                  key={index}
-                                  className={cn(
-                                    'px-4 py-3 rounded-lg font-mono text-sm flex items-center gap-2',
-                                    message.isCustomRule
-                                      ? 'bg-violet-100 text-violet-900 border border-violet-300'
-                                      : 'bg-blue-100 text-blue-900 border border-blue-300'
-                                  )}
-                                >
-                                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                                  {example}
-                                </div>
-                              ))}
+                          <Lightbulb className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className={cn(
+                            'font-bold text-lg mb-3',
+                            message.isCustomRule ? 'text-violet-900' : 'text-blue-900'
+                          )}>
+                            {message.errorGuide.title}
+                          </h4>
+                          
+                          {message.errorGuide.steps && message.errorGuide.steps.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-bold text-gray-700 mb-2">修正手順:</p>
+                              <ol className="space-y-2">
+                                {message.errorGuide.steps.map((step, idx) => (
+                                  <li key={idx} className="flex items-start gap-3 text-base text-gray-700">
+                                    <span className={cn(
+                                      'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white',
+                                      message.isCustomRule ? 'bg-gradient-to-br from-violet-500 to-purple-500' : 'bg-blue-500'
+                                    )}>
+                                      {idx + 1}
+                                    </span>
+                                    <span className="flex-1 pt-0.5">{step}</span>
+                                  </li>
+                                ))}
+                              </ol>
                             </div>
-                          </div>
-                        )}
-                        
-                        {message.errorGuide.tips && message.errorGuide.tips.length > 0 && (
-                          <div>
-                            <p className="text-sm font-bold text-gray-700 mb-2">💡 ヒント:</p>
-                            <ul className="space-y-1">
-                              {message.errorGuide.tips.map((tip, index) => (
-                                <li key={index} className="flex items-start gap-2 text-base text-gray-600">
-                                  <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0" />
-                                  <span>{tip}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                          )}
+                          
+                          {message.errorGuide.examples && message.errorGuide.examples.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-bold text-gray-700 mb-2">正しい例:</p>
+                              <div className="space-y-2">
+                                {message.errorGuide.examples.map((example, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={cn(
+                                      'px-4 py-3 rounded-lg font-mono text-sm flex items-center gap-2',
+                                      message.isCustomRule
+                                        ? 'bg-violet-100 text-violet-900 border border-violet-300'
+                                        : 'bg-blue-100 text-blue-900 border border-blue-300'
+                                    )}
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                                    {example}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {message.errorGuide.tips && message.errorGuide.tips.length > 0 && (
+                            <div>
+                              <p className="text-sm font-bold text-gray-700 mb-2">💡 ヒント:</p>
+                              <ul className="space-y-1">
+                                {message.errorGuide.tips.map((tip, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-base text-gray-600">
+                                    <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0" />
+                                    <span>{tip}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {/* 確認ポイントガイド */}
-                {message.checkGuide && (
-                  <div className="mt-5 p-5 rounded-xl border-2 bg-teal-50 border-teal-300 animate-fade-in">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-teal-500">
-                        <Eye className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-lg mb-3 text-teal-900">
-                          {message.checkGuide.title}
-                        </h4>
-                        
-                        {message.checkGuide.checkPoints && message.checkGuide.checkPoints.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm font-bold text-gray-700 mb-2">確認ポイント:</p>
-                            <ul className="space-y-2">
-                              {message.checkGuide.checkPoints.map((point, index) => (
-                                <li key={index} className="flex items-start gap-3 text-base text-gray-700">
-                                  <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0 text-teal-600" />
-                                  <span className="flex-1">{point}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {message.checkGuide.commands && message.checkGuide.commands.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                              <Terminal className="w-4 h-4" />
-                              確認用コマンド:
-                            </p>
-                            <div className="space-y-2">
-                              {message.checkGuide.commands.map((cmd, index) => (
-                                <div
-                                  key={index}
-                                  className="px-4 py-3 rounded-lg font-mono text-sm bg-gray-800 text-green-400 border border-gray-700"
-                                >
-                                  $ {cmd}
-                                </div>
-                              ))}
+                  )}
+                  
+                  {/* 確認ポイントガイド */}
+                  {message.checkGuide && (
+                    <div className="mt-5 p-5 rounded-xl border-2 bg-teal-50 border-teal-300 animate-fade-in">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-teal-500">
+                          <Eye className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-lg mb-3 text-teal-900">
+                            {message.checkGuide.title}
+                          </h4>
+                          
+                          {message.checkGuide.checkPoints && message.checkGuide.checkPoints.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-bold text-gray-700 mb-2">確認ポイント:</p>
+                              <ul className="space-y-2">
+                                {message.checkGuide.checkPoints.map((point, idx) => (
+                                  <li key={idx} className="flex items-start gap-3 text-base text-gray-700">
+                                    <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0 text-teal-600" />
+                                    <span className="flex-1">{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                          </div>
-                        )}
-                        
-                        {message.checkGuide.visualGuide && message.checkGuide.visualGuide.length > 0 && (
-                          <div>
-                            <p className="text-sm font-bold text-gray-700 mb-2">👀 視覚的な確認方法:</p>
-                            <ul className="space-y-1">
-                              {message.checkGuide.visualGuide.map((guide, index) => (
-                                <li key={index} className="flex items-start gap-2 text-base text-gray-600">
-                                  <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0 text-teal-600" />
-                                  <span>{guide}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                          )}
+                          
+                          {message.checkGuide.commands && message.checkGuide.commands.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                <Terminal className="w-4 h-4" />
+                                確認用コマンド:
+                              </p>
+                              <div className="space-y-2">
+                                {message.checkGuide.commands.map((cmd, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="px-4 py-3 rounded-lg font-mono text-sm bg-gray-800 text-green-400 border border-gray-700"
+                                  >
+                                    $ {cmd}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {message.checkGuide.visualGuide && message.checkGuide.visualGuide.length > 0 && (
+                            <div>
+                              <p className="text-sm font-bold text-gray-700 mb-2">👀 視覚的な確認方法:</p>
+                              <ul className="space-y-1">
+                                {message.checkGuide.visualGuide.map((guide, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-base text-gray-600">
+                                    <ArrowRight className="w-4 h-4 mt-1 flex-shrink-0 text-teal-600" />
+                                    <span>{guide}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {/* 選択肢ボタン */}
-                {message.options && message.options.length > 0 && (
-                  <div className="mt-5 space-y-3">
-                    {message.options.map((option, index) => (
-                      <Button
-                        key={index}
-                        variant="ghost"
-                        className={cn(
-                          'w-full text-left justify-start rounded-xl font-semibold text-base py-4 px-5 transition-all',
-                          message.role === 'user' 
-                            ? 'bg-white/20 hover:bg-white/30 text-white border border-white/30' 
-                            : 'bg-gray-50 hover:bg-teal-50 text-gray-800 border-2 border-gray-200 hover:border-teal-400'
-                        )}
-                        onClick={() => handleOptionClick(option)}
-                      >
-                        {option}
-                      </Button>
-                    ))}
-                  </div>
-                )}
+                  )}
+                  
+                  {/* 選択肢ボタン */}
+                  {message.options && message.options.length > 0 && (
+                    <div className="mt-5 space-y-3">
+                      {message.options.map((option, idx) => (
+                        <Button
+                          key={idx}
+                          variant="ghost"
+                          className={cn(
+                            'w-full text-left justify-start rounded-xl font-semibold text-base py-4 px-5 transition-all',
+                            message.role === 'user' 
+                              ? 'bg-white/20 hover:bg-white/30 text-white border border-white/30' 
+                              : 'bg-gray-50 hover:bg-teal-50 text-gray-800 border-2 border-gray-200 hover:border-teal-400'
+                          )}
+                          onClick={() => handleOptionClick(option)}
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </div>
