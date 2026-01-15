@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -186,7 +186,7 @@ const getStatusConfig = (status: 'completed' | 'in_progress' | 'started' | 'not_
 };
 
 export function AdminPanel() {
-  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject, addProject, updateProject, deleteProject, addLocalRule, localRules } = useStore();
+  const { categories, addCategory, updateCategory, deleteCategory, projects, progress, selectedProject, addProject, updateProject, deleteProject, addLocalRule, updateLocalRules, localRules } = useStore();
   
   // 実際のコース進捗を取得（progressストアから）
   const getActualCourseProgress = (categoryId: string): number => {
@@ -236,6 +236,9 @@ export function AdminPanel() {
   // メニュー管理用の状態
   const [menuCreationMode, setMenuCreationMode] = useState<'none' | 'markdown' | 'natural-language'>('none');
   
+  // 前回のlocalRulesのIDリストを保存（無限ループ防止）
+  const prevLocalRulesIdsRef = useRef<string>('');
+  
   // structureの変更をlocalStorageに保存し、isCustomRuleのルールをlocalRulesに同期
   useEffect(() => {
     // localStorageに保存
@@ -261,21 +264,20 @@ export function AdminPanel() {
     );
     
     // 既存のlocalRulesを更新（isCustomRuleのものを全て置換）
-    if (customRules.length > 0) {
-      const existingNonCustomRules = localRules.filter(r => !r.isCustomRule);
-      const updatedRules = [...existingNonCustomRules, ...customRules];
-      // 重複を除去
-      const uniqueRules = updatedRules.filter((rule, index, self) => 
-        self.findIndex(r => r.id === rule.id) === index
-      );
-      // localRulesと異なる場合のみ更新（無限ループ防止）
-      const localRulesIds = localRules.map(r => r.id).sort().join(',');
-      const uniqueRulesIds = uniqueRules.map(r => r.id).sort().join(',');
-      if (localRulesIds !== uniqueRulesIds) {
-        // updateLocalRulesは依存配列に入れない
-      }
+    const existingNonCustomRules = localRules.filter(r => !r.isCustomRule);
+    const updatedRules = [...existingNonCustomRules, ...customRules];
+    // 重複を除去
+    const uniqueRules = updatedRules.filter((rule, index, self) => 
+      self.findIndex(r => r.id === rule.id) === index
+    );
+    
+    // localRulesと異なる場合のみ更新（無限ループ防止）
+    const uniqueRulesIds = uniqueRules.map(r => r.id).sort().join(',');
+    if (prevLocalRulesIdsRef.current !== uniqueRulesIds) {
+      prevLocalRulesIdsRef.current = uniqueRulesIds;
+      updateLocalRules(uniqueRules);
     }
-  }, [structure]);
+  }, [structure, localRules, updateLocalRules]);
   const [markdownFile, setMarkdownFile] = useState<File | null>(null);
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [naturalLanguageChat, setNaturalLanguageChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);

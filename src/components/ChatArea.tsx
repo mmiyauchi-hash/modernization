@@ -179,18 +179,22 @@ export function ChatArea() {
     if (!scenario) return null;
 
     const currentStep = scenario.find((s) => s.id === currentStepId);
-    if (!currentStep || currentStep.inputType !== 'text' || !currentStep.validation) {
-      return null;
-    }
+    if (!currentStep) return null;
 
+    // ステップIDと一致するルールを検索（社内独自ルールとして設定されている場合）
     const relatedRule = localRules.find((r) => {
-      if (currentStep.id === 'repository-name' && r.type === 'naming') {
+      // ルールIDがステップIDと一致するか、または特定のステップIDとルールタイプの組み合わせをチェック
+      if (r.id === currentStepId && r.isCustomRule) {
+        return true;
+      }
+      // 後方互換性のため、repository-nameの場合はnamingタイプもチェック
+      if (currentStep.id === 'repository-name' && r.type === 'naming' && r.isCustomRule) {
         return true;
       }
       return false;
     });
 
-    if (!relatedRule) return null;
+    if (!relatedRule || !relatedRule.isCustomRule) return null;
 
     return {
       rule: relatedRule,
