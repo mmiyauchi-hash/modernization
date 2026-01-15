@@ -133,16 +133,26 @@ export const useStore = create<AppState>()(
         })),
       
       addChatMessage: (message) =>
-        set((state) => ({
-          chatMessages: [
-            ...state.chatMessages,
-            {
-              ...message,
-              id: `msg-${Date.now()}-${Math.random()}`,
-              timestamp: new Date(),
-            },
-          ],
-        })),
+        set((state) => {
+          // 最後のメッセージと同じ内容の場合は追加しない（重複防止）
+          const lastMessage = state.chatMessages[state.chatMessages.length - 1];
+          if (lastMessage && 
+              lastMessage.role === message.role && 
+              lastMessage.content === message.content) {
+            return state; // 変更なし
+          }
+          
+          return {
+            chatMessages: [
+              ...state.chatMessages,
+              {
+                ...message,
+                id: `msg-${Date.now()}-${Math.random()}`,
+                timestamp: new Date(),
+              },
+            ],
+          };
+        }),
       
       setGitMigrationPhase: (phase) =>
         set((state) => ({

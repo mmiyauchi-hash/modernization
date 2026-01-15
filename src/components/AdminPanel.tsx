@@ -6,6 +6,7 @@ import {
   Settings, 
   Plus, 
   Folder, 
+  FolderPlus,
   FileText, 
   Edit2, 
   Trash2, 
@@ -668,47 +669,47 @@ export function AdminPanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen">
-      <div className="border-b glass-strong border-white/20 p-6">
+    <div className="flex-1 flex flex-col h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200 p-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-modern">
-              <Settings className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+              <Settings className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900">
                 管理者画面
               </h2>
-              <p className="text-xs text-gray-600 font-medium">
+              <p className="text-base text-gray-600 mt-1">
                 業務ルールとメニューの管理
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button
               onClick={() => setViewMode('business-rules')}
               variant={viewMode === 'business-rules' ? 'default' : 'outline'}
               className={cn(
-                'gap-2 rounded-xl',
+                'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
                 viewMode === 'business-rules' 
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white' 
-                  : 'border-gray-200/50 hover:bg-gray-100/50'
+                  ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
               )}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-5 h-5" />
               業務ルール
             </Button>
             <Button
               onClick={() => setViewMode('menu-management')}
               variant={viewMode === 'menu-management' ? 'default' : 'outline'}
               className={cn(
-                'gap-2 rounded-xl',
+                'gap-2 rounded-lg font-semibold text-base px-5 py-2.5',
                 viewMode === 'menu-management' 
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white' 
-                  : 'border-gray-200/50 hover:bg-gray-100/50'
+                  ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
               )}
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-5 h-5" />
               メニュー管理
             </Button>
           </div>
@@ -720,14 +721,14 @@ export function AdminPanel() {
           
           {/* メニュー管理モード */}
           {viewMode === 'menu-management' && (
-            <Card className="p-6 glass-strong rounded-2xl shadow-modern-lg border border-white/20">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-modern">
-                  <Menu className="w-5 h-5 text-white" />
+            <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                  <Menu className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">メニュー管理</h3>
-                  <p className="text-xs text-gray-600 font-medium">サイドバーに表示されるメニューを管理</p>
+                  <h3 className="text-xl font-bold text-gray-900">メニュー管理</h3>
+                  <p className="text-base text-gray-600">サイドバーに表示されるメニューを管理</p>
                 </div>
               </div>
 
@@ -736,16 +737,16 @@ export function AdminPanel() {
                 <div className="mb-6 flex gap-3">
                   <Button
                     onClick={() => setMenuCreationMode('markdown')}
-                    className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-sm hover:shadow-md transition-all"
+                    className="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-semibold shadow-sm transition-all h-12"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
+                    <Upload className="w-5 h-5 mr-2" />
                     マークダウンファイルから作成
                   </Button>
                   <Button
                     onClick={() => setMenuCreationMode('natural-language')}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold shadow-sm hover:shadow-md transition-all"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold shadow-sm transition-all h-12"
                   >
-                    <MessageSquare className="w-4 h-4 mr-2" />
+                    <MessageSquare className="w-5 h-5 mr-2" />
                     自然言語で対話しながら作成
                   </Button>
                 </div>
@@ -954,31 +955,31 @@ export function AdminPanel() {
           {viewMode === 'business-rules' && (
             <>
               {/* ツールバー */}
-              <div className="flex gap-2 mb-4 justify-end">
+              <div className="flex gap-3 mb-4 justify-end">
                 <Button
                   onClick={addDirectory}
                   variant="outline"
-                  className="gap-2 rounded-xl border-gray-200/50 hover:bg-gray-100/50"
+                  className="gap-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 font-semibold"
                 >
-                  <FolderPlus className="w-4 h-4" />
+                  <FolderPlus className="w-5 h-5" />
                   ディレクトリ追加
                 </Button>
                 <Button
                   onClick={handleSave}
-                  className="gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-modern hover:shadow-modern-lg transition-all"
+                  className="gap-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-semibold shadow-sm transition-all"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-5 h-5" />
                   保存・エクスポート
                 </Button>
               </div>
 
               {/* ディレクトリ構造 */}
-              <Card className="p-6 glass-strong rounded-2xl shadow-modern-lg border border-white/20">
-                <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-modern">
-                <Folder className="w-5 h-5 text-white" />
+              <Card className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
+                <Folder className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-xl font-bold text-gray-900">
                 業務ルール構造
               </h3>
             </div>
