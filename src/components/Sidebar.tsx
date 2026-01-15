@@ -2,15 +2,10 @@ import { useState } from 'react';
 import { useStore, ProjectInfo } from '../store/useStore';
 import { getCategoryIcon } from '../data/categories';
 import { ModernizationCategory } from '../types';
-import { CheckCircle2, ChevronRight, ChevronDown, Building2, FolderKanban } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronDown, Building2, FolderKanban, Save, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
-
-// プロジェクトの全体進捗を計算
-const calculateOverallProgress = (courses: ProjectInfo['courses']): number => {
-  const values = Object.values(courses);
-  return Math.round(values.reduce((sum, val) => sum + val, 0) / values.length);
-};
+import { Button } from './ui/button';
 
 // ステータスを進捗率から判定
 const getStatusFromProgress = (progress: number): 'completed' | 'in_progress' | 'started' | 'not_started' => {
@@ -31,9 +26,33 @@ const getStatusColor = (status: 'completed' | 'in_progress' | 'started' | 'not_s
 };
 
 export function Sidebar() {
-  const { selectedCategory, selectedProject, projects, setSelectedCategory, setSelectedProject, categories } = useStore();
+  const { selectedCategory, selectedProject, projects, setSelectedCategory, setSelectedProject, categories, progress } = useStore();
   const navigate = useNavigate();
   const [expandedProject, setExpandedProject] = useState<string | null>(selectedProject);
+  const [showSaved, setShowSaved] = useState(false);
+
+  // 実際のコース進捗を取得（progressストアから）
+  const getActualCourseProgress = (categoryId: string): number => {
+    const progressItem = progress.find(p => p.category === categoryId);
+    return progressItem?.progress || 0;
+  };
+
+  // プロジェクトの進捗を計算（選択中のプロジェクトは実際の進捗を使用）
+  const getProjectCourseProgress = (project: ProjectInfo, categoryId: string): number => {
+    // 選択中のプロジェクトの場合は実際のガイド進捗を反映
+    if (project.id === selectedProject) {
+      return getActualCourseProgress(categoryId);
+    }
+    // それ以外はモックデータの進捗を使用
+    return project.courses[categoryId as keyof typeof project.courses] || 0;
+  };
+
+  // プロジェクトの全体進捗を計算
+  const calculateProjectProgress = (project: ProjectInfo): number => {
+    const courseIds = ['git-migration', 'ci-cd', 'unit-test', 'e2e-test', 'monitoring'];
+    const total = courseIds.reduce((sum, id) => sum + getProjectCourseProgress(project, id), 0);
+    return Math.round(total / courseIds.length);
+  };
 
   // プロジェクトを選択してコース一覧を展開
   const handleProjectClick = (projectId: string) => {
@@ -56,8 +75,14 @@ export function Sidebar() {
     }
   };
 
+  // 保存ボタン（実際には自動保存だが、視覚的フィードバックを提供）
+  const handleSave = () => {
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  };
+
   return (
-    <div className="w-80 h-screen overflow-y-auto bg-white border-r border-gray-200">
+    <div className="w-80 h-screen overflow-y-auto bg-white border-r border-gray-200 flex flex-col">
       {/* ヘッダー */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-4">
@@ -76,7 +101,7 @@ export function Sidebar() {
       </div>
       
       {/* プロジェクト一覧 */}
-      <div className="p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <p className="text-sm font-bold text-gray-500 px-3 mb-4 uppercase tracking-wider flex items-center gap-2">
           <Building2 className="w-4 h-4" />
           プロジェクト一覧
@@ -84,7 +109,7 @@ export function Sidebar() {
         
         <div className="space-y-2">
           {projects.map((project) => {
-            const overallProgress = calculateOverallProgress(project.courses);
+            const overallProgress = calculateProjectProgress(project);
             const status = getStatusFromProgress(overallProgress);
             const statusColor = getStatusColor(status);
             const isExpanded = expandedProject === project.id;
@@ -161,7 +186,7 @@ export function Sidebar() {
                 {isExpanded && (
                   <div className="bg-gray-50 border-t border-gray-100">
                     {categories.map((category) => {
-                      const courseProgress = project.courses[category.id as keyof typeof project.courses] || 0;
+                      const courseProgress = getProjectCourseProgress(project, category.id);
                       const Icon = getCategoryIcon(category.icon);
                       const isCourseSelected = selectedProject === project.id && selectedCategory === category.id;
 
@@ -233,6 +258,34 @@ export function Sidebar() {
             );
           })}
         </div>
+      </div>
+
+      {/* 保存ボタン */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <Button
+          onClick={handleSave}
+          className={cn(
+            'w-full gap-2 font-bold transition-all',
+            showSaved 
+              ? 'bg-green-500 hover:bg-green-600' 
+              : 'bg-teal-500 hover:bg-teal-600'
+          )}
+        >
+          {showSaved ? (
+            <>
+              <Check className="w-5 h-5" />
+              保存しました
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5" />
+              進捗を保存
+            </>
+          )}
+        </Button>
+        <p className="text-xs text-gray-500 text-center mt-2">
+          ※ 進捗は自動保存されています
+        </p>
       </div>
     </div>
   );
