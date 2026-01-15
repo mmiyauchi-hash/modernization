@@ -8,7 +8,7 @@ import { cn } from '../lib/utils';
 import { useState, useEffect } from 'react';
 
 export function GitGuideLayout() {
-  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, clearSavedProgress } = useStore();
+  const { gitMigrationPhase, progress, setGitMigrationPhase, resetChat, updateProgress, chatMessages, clearSavedProgress, setSelectedCategory } = useStore();
   const navigate = useNavigate();
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   
@@ -52,6 +52,7 @@ export function GitGuideLayout() {
   };
 
   const handleRestoreProgress = () => {
+    setSelectedCategory('git-migration'); // カテゴリーを設定
     setShowRestoreDialog(false);
   };
   
@@ -60,6 +61,7 @@ export function GitGuideLayout() {
     resetChat();
     setGitMigrationPhase({ phase: 'preparation' });
     updateProgress('git-migration', 0, 'Lv0');
+    setSelectedCategory('git-migration'); // カテゴリーを再設定
     setShowRestoreDialog(false);
   };
 
