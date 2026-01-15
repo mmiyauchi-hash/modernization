@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useStore, ProjectInfo } from '../store/useStore';
-import { getCategoryIcon } from '../data/categories';
-import { ModernizationCategory } from '../types';
-import { CheckCircle2, ChevronRight, ChevronDown, Building2, FolderKanban, Save, Check } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Building2, FolderKanban, Save, Check, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -25,10 +23,19 @@ const getStatusColor = (status: 'completed' | 'in_progress' | 'started' | 'not_s
   }
 };
 
+// ステータスに応じたアイコンを返す
+const getStatusIcon = (status: 'completed' | 'in_progress' | 'started' | 'not_started') => {
+  switch (status) {
+    case 'completed': return CheckCircle2;
+    case 'in_progress': return TrendingUp;
+    case 'started': return Clock;
+    case 'not_started': return AlertCircle;
+  }
+};
+
 export function Sidebar() {
-  const { selectedCategory, selectedProject, projects, setSelectedCategory, setSelectedProject, categories, progress } = useStore();
+  const { selectedProject, projects, progress } = useStore();
   const navigate = useNavigate();
-  const [expandedProject, setExpandedProject] = useState<string | null>(selectedProject);
   const [showSaved, setShowSaved] = useState(false);
 
   // 実際のコース進捗を取得（progressストアから）
@@ -54,25 +61,9 @@ export function Sidebar() {
     return Math.round(total / courseIds.length);
   };
 
-  // プロジェクトを選択してコース一覧を展開
+  // プロジェクトをクリック → 詳細ページへ遷移
   const handleProjectClick = (projectId: string) => {
-    if (expandedProject === projectId) {
-      setExpandedProject(null);
-    } else {
-      setExpandedProject(projectId);
-      setSelectedProject(projectId);
-    }
-  };
-
-  // コースを選択
-  const handleCourseClick = (projectId: string, categoryId: ModernizationCategory) => {
-    setSelectedProject(projectId);
-    setSelectedCategory(categoryId);
-    if (categoryId === 'git-migration') {
-      navigate('/guide/git-migration');
-    } else {
-      navigate('/');
-    }
+    navigate(`/project/${projectId}`);
   };
 
   // 保存ボタン（実際には自動保存だが、視覚的フィードバックを提供）
@@ -112,149 +103,74 @@ export function Sidebar() {
             const overallProgress = calculateProjectProgress(project);
             const status = getStatusFromProgress(overallProgress);
             const statusColor = getStatusColor(status);
-            const isExpanded = expandedProject === project.id;
+            const StatusIcon = getStatusIcon(status);
             const isSelected = selectedProject === project.id;
 
             return (
-              <div key={project.id} className="overflow-hidden rounded-xl border-2 border-gray-100">
-                {/* プロジェクト行 */}
-                <button
-                  onClick={() => handleProjectClick(project.id)}
-                  className={cn(
-                    'w-full text-left p-3 transition-all',
-                    isSelected
-                      ? 'bg-teal-50 border-teal-400'
-                      : 'bg-white hover:bg-gray-50'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* 展開アイコン */}
-                    <div className="w-6 flex-shrink-0">
-                      {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      )}
-                    </div>
-                    
-                    {/* プロジェクトアイコン */}
-                    <div className={cn(
-                      'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                      isSelected ? 'bg-teal-500' : 'bg-gray-100'
-                    )}>
-                      <FolderKanban className={cn(
-                        'w-5 h-5',
-                        isSelected ? 'text-white' : 'text-gray-600'
+              <button
+                key={project.id}
+                onClick={() => handleProjectClick(project.id)}
+                className={cn(
+                  'w-full text-left p-4 rounded-xl transition-all border-2',
+                  isSelected
+                    ? 'bg-teal-50 border-teal-400 shadow-md'
+                    : 'bg-white hover:bg-gray-50 border-gray-100 hover:border-gray-200'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {/* プロジェクトアイコン */}
+                  <div className={cn(
+                    'w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0',
+                    isSelected ? 'bg-teal-500' : 'bg-gray-100'
+                  )}>
+                    <FolderKanban className={cn(
+                      'w-5 h-5',
+                      isSelected ? 'text-white' : 'text-gray-600'
+                    )} />
+                  </div>
+                  
+                  {/* プロジェクト情報 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className={cn(
+                        'font-bold text-sm truncate',
+                        isSelected ? 'text-teal-700' : 'text-gray-800'
+                      )}>
+                        {project.name}
+                      </h3>
+                      <StatusIcon className={cn(
+                        'w-4 h-4 flex-shrink-0 ml-2',
+                        status === 'completed' ? 'text-green-500' :
+                        status === 'in_progress' ? 'text-blue-500' :
+                        status === 'started' ? 'text-amber-500' : 'text-gray-400'
                       )} />
                     </div>
+                    <p className="text-xs text-gray-500 mb-2">{project.team}</p>
                     
-                    {/* プロジェクト情報 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className={cn(
-                          'font-bold text-sm truncate',
-                          isSelected ? 'text-teal-700' : 'text-gray-800'
-                        )}>
-                          {project.name}
-                        </h3>
-                        {overallProgress === 100 && (
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        )}
+                    {/* 進捗バー */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className={cn('h-full rounded-full transition-all', statusColor)}
+                          style={{ width: `${overallProgress}%` }}
+                        />
                       </div>
-                      <p className="text-xs text-gray-500 mb-1">{project.team}</p>
-                      
-                      {/* 進捗バー */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={cn('h-full rounded-full transition-all', statusColor)}
-                            style={{ width: `${overallProgress}%` }}
-                          />
-                        </div>
-                        <span className={cn(
-                          'text-xs font-bold',
-                          isSelected ? 'text-teal-600' : 'text-gray-600'
-                        )}>
-                          {overallProgress}%
-                        </span>
-                      </div>
+                      <span className={cn(
+                        'text-xs font-bold min-w-[32px] text-right',
+                        isSelected ? 'text-teal-600' : 'text-gray-600'
+                      )}>
+                        {overallProgress}%
+                      </span>
                     </div>
                   </div>
-                </button>
-                
-                {/* 展開時：コース一覧 */}
-                {isExpanded && (
-                  <div className="bg-gray-50 border-t border-gray-100">
-                    {categories.map((category) => {
-                      const courseProgress = getProjectCourseProgress(project, category.id);
-                      const Icon = getCategoryIcon(category.icon);
-                      const isCourseSelected = selectedProject === project.id && selectedCategory === category.id;
 
-                      return (
-                        <button
-                          key={category.id}
-                          onClick={() => handleCourseClick(project.id, category.id)}
-                          className={cn(
-                            'w-full text-left p-3 pl-12 transition-all border-b border-gray-100 last:border-b-0',
-                            isCourseSelected
-                              ? 'bg-teal-100'
-                              : 'hover:bg-gray-100'
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            {/* コースアイコン */}
-                            <div className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                              isCourseSelected ? 'bg-teal-500' : 'bg-white border border-gray-200'
-                            )}>
-                              <Icon className={cn(
-                                'w-4 h-4',
-                                isCourseSelected ? 'text-white' : 'text-gray-500'
-                              )} />
-                            </div>
-                            
-                            {/* コース情報 */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className={cn(
-                                  'text-sm font-medium truncate',
-                                  isCourseSelected ? 'text-teal-700' : 'text-gray-700'
-                                )}>
-                                  {category.name}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  {courseProgress === 100 && (
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  )}
-                                  <span className={cn(
-                                    'text-xs font-bold',
-                                    courseProgress === 100 ? 'text-green-600' :
-                                    courseProgress > 0 ? 'text-blue-600' : 'text-gray-400'
-                                  )}>
-                                    {courseProgress}%
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {/* 進捗バー */}
-                              <div className="mt-1 h-1 bg-gray-200 rounded-full overflow-hidden">
-                                <div 
-                                  className={cn(
-                                    'h-full rounded-full transition-all',
-                                    courseProgress === 100 ? 'bg-green-500' :
-                                    courseProgress > 0 ? 'bg-blue-500' : 'bg-gray-300'
-                                  )}
-                                  style={{ width: `${courseProgress}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                  {/* 矢印 */}
+                  <ChevronRight className={cn(
+                    'w-5 h-5 flex-shrink-0',
+                    isSelected ? 'text-teal-500' : 'text-gray-400'
+                  )} />
+                </div>
+              </button>
             );
           })}
         </div>
